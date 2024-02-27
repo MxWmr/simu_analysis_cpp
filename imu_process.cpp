@@ -8,11 +8,12 @@ typedef std::vector<Eigen::Vector3d> Vect3;
 typedef std::vector<std::time_t> Timevect;
 
 
-imu_process::imu_process(std::string simu_name){
+void imu_process::imu_process(std::string path, std::string simu_name){
     m_simu_name = simu_name;
+    m_pzth = path;
 }
 
-imu_process::get_data(){
+void imu_process::get_data(){
     // TO DO
 }
 
@@ -27,7 +28,7 @@ imu_process::orient_dvl(){
     std::cin << "Done !"<<std::endl;
 }
 
-imu_process::orient_imu(){
+void imu_process::orient_imu(){
     std::cin << "Orient IMU ..."<<std::endl;
     int k(0),l(0);
     for (int i=0;i<m_imuaccel.size();i++){
@@ -51,7 +52,7 @@ imu_process::orient_imu(){
 }
 
 
-imu_process::integrate_dvl(){
+void imu_process::integrate_dvl(){
     std::cin << "Integrate DVL ..."<<std::endl;
 
     Eigen::Vector3d p_0 = m_initpos;
@@ -67,7 +68,7 @@ imu_process::integrate_dvl(){
 }
 
 
-imu_process::integrate_imu2(){
+void imu_process::integrate_imu2(){
     std::cin << "Integrate IMU ..."<<std::endl;
 
     Eigen::Vector3d v_0 = m_initspeed;
@@ -83,7 +84,7 @@ imu_process::integrate_imu2(){
 }
 
 
-imu_process::integrate_imu2(){
+void imu_process::integrate_imu2(){
     std::cin << "Integrate IMU ..."<<std::endl;
 
     Eigen::Vector3d p_0 = m_initpos;
@@ -98,3 +99,27 @@ imu_process::integrate_imu2(){
     std::cin << "Done !"<<std::endl;
 }
 
+
+std::vector<double>  imu_process::imu_rmse(){
+    std::vector<double> res(2);
+    
+    res[0]=utils::rmse(m_imuspeed,m_refspeed_imutime);
+    res[1]=utils::rmse(m_imupos,m_refpos_imutime);
+
+    return res;
+
+}
+
+std::vector<double>  imu_process::dvl_rmse(){
+    std::vector<double> res(2);
+    
+    res[0]=utils::rmse(m_dvlspeed,m_refspeed_dvltime);
+    res[1]=utils::rmse(m_dvlpos,m_refpos_dvltime);
+
+    return res;
+
+}
+
+void imu_process::export_results(){
+    // TO DO 
+}

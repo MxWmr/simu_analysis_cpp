@@ -1,6 +1,9 @@
 #include "utils.hpp"
 
 
+typedef std::vector<Eigen::Vector3d> Vect3;
+typedef std::vector<std::time_t> Timevect;
+
 Eigen::Matrix3d utils::rotationMatrix(const Eigen::Vector3d& angles)
 {
     double phi,theta,psi = angles.x(), angles.y(), angles.z();
@@ -82,6 +85,15 @@ static std::vector<double> utils::compute_RmRn(const double Lat){
     return RmRn;
 }
 
+static double utils::rmse(Vect3 v1, Vect3 v2){
+    double rmse = 0;
+    for (int i=0,i<v1.size(),i++)[
+        rmse+=(v1[i]-v2[i])**2;
+    ]
+    rmse /= v1.size();
+    rmse = std::sqrt(rmse);
+    return rmse;
+}
 
 
     
