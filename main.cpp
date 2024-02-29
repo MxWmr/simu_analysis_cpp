@@ -15,9 +15,9 @@ int main(){
     // Parameters of the analysis
     std::string simu_shape = "TEST"; // "LINE" "TEST" "SQUARE" "8TURN" "HELICOIDAL" "TRIANGLE"
     std::string noise = "0"; // "1" for noise
-    std::string simu_name = "SINS_"+simu_shape+"/"+"SIMU_"+noise+"/";
-    std::string path = "/home/maxwmr/Documents/work/data"
-    bool export = false;
+    std::string simu_name = "SINS_CPP_"+simu_shape+"/"+"SIM_"+noise+"/";
+    std::string path = "/home/maxwmr/Documents/work/data2/";
+    bool export_tofile = true;
 
 
 
@@ -41,7 +41,7 @@ int main(){
     
 
     // export data to CSV files
-    if(export){
+    if(export_tofile){
         process.export_results();
     }
 

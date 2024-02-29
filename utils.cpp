@@ -1,12 +1,13 @@
 #include "utils.hpp"
+#include <cmath>
+#include <iostream>
 
 
-typedef std::vector<Eigen::Vector3d> Vect3;
-typedef std::vector<std::time_t> Timevect;
-
-Eigen::Matrix3d utils::rotationMatrix(const Eigen::Vector3d& angles)
+Eigen::Matrix3d utils::get_rotmat(const Eigen::Vector3d& angles)
 {
-    double phi,theta,psi = angles.x(), angles.y(), angles.z();
+    double phi = angles.x();
+    double theta =  angles.y();
+    double psi =  angles.z();
 
 	double c_phi = std::cos(phi);
 	double s_phi = std::sin(phi);
@@ -38,11 +39,12 @@ Eigen::Vector3d utils::get_wie(const double Lat, const double h)
 }
 
 
-Eigen::Vector3d utils::get_wen(const double Lat, const Eigen::Vector3d& v, const double h);
+Eigen::Vector3d utils::get_wen(const double Lat, const Eigen::Vector3d& v, const double h)
 {
     Eigen::Vector3d wen;
     std::vector<double> RmRn = compute_RmRn(Lat);
-    Rm,Rn = RmRn[0],RmRn[1];
+    double Rm = RmRn[0];
+    double Rn = RmRn[1];
 
     wen[0] = -v[1]/(Rm+h);
     wen[1] = v[0]/(Rn+h);
@@ -54,7 +56,7 @@ Eigen::Vector3d utils:: get_local_gravity(const double Lat, const double h, cons
 {
     Eigen::Vector3d gl;
     double g0 = 9.780326;
-    double g = g0*(1+5.27904*1e-3*(std::sin(Lat)**2)+2.32718*1e-5*(std::sin(Lat)**4))-3.085*1e-6*h;
+    double g = g0*(1+5.27904*1e-3*(std::pow(std::sin(Lat),2))+2.32718*1e-5*(std::pow(std::sin(Lat),4)))-3.085*1e-6*h;
     
     gl[0] = 0.;
     gl[1] = 0.;
@@ -63,37 +65,114 @@ Eigen::Vector3d utils:: get_local_gravity(const double Lat, const double h, cons
 
     double e = 0.08181919;
     std::vector<double> RmRn = compute_RmRn(Lat);
-    Rm,Rn = RmRn[0],RmRn[1];
+    double Rm = RmRn[0];
+    double Rn = RmRn[1];
 
     Eigen::Vector3d r;
     r[0] = 0.;
     r[1] = 0.;
-    r[2] = (1-e**2)*Rn+h;   // sure ?
+    r[2] = (1-e*e)*Rn+h;   // sure ?
 
-    gl = gl - wie.cross(wie.cross(r))      
+    gl = gl - wie.cross(wie.cross(r));
     return gl;
 }
 
-static std::vector<double> utils::compute_RmRn(const double Lat){
+std::vector<double> utils::compute_RmRn(const double Lat)
+{
 
     double R = 6378137.0;
     double e = 0.08181919;
     std::vector<double> RmRn(2);
-    RmRn[0] = R*(1-e**2)/(1-e**2*mt.sin(Lat)**2)**(3/2)
-    RmRn[1] = R/(1-e**2*mt.sin(Lat)**2)**(1/2)
+    RmRn[0] = R*(1-e*e)/std::pow((1-e*e*std::pow(std::sin(Lat),2)),3./2.);
+    RmRn[1] = R/std::pow((1-e*e*std::pow(std::sin(Lat),2)),1./2.);
 
     return RmRn;
 }
 
-static double utils::rmse(Vect3 v1, Vect3 v2){
+double utils::rmse(std::vector<Eigen::Vector3d> v1, std::vector<Eigen::Vector3d> v2){
     double rmse = 0;
-    for (int i=0,i<v1.size(),i++)[
-        rmse+=(v1[i]-v2[i])**2;
-    ]
+    for (int i=0;i<v1.size();i++){
+        rmse+= (v1[i]-v2[i]).squaredNorm();
+    }
     rmse /= v1.size();
     rmse = std::sqrt(rmse);
     return rmse;
 }
 
 
-    
+
+// fct from:
+// https://github.com/AleksandarHaber/Save-and-Load-Eigen-Cpp-Matrices-Arrays-to-and-from-CSV-files/blob/master/source_file.cpp#L22
+Eigen::MatrixXd utils::openData(std::string fileToOpen)
+{
+
+	// the inspiration for creating this function was drawn from here (I did NOT copy and paste the code)
+	// https://stackoverflow.com/questions/34247057/how-to-read-csv-file-and-assign-to-eigen-matrix
+	
+	// the input is the file: "fileToOpen.csv":
+	// a,b,c
+	// d,e,f
+	// This function converts input file data into the Eigen matrix format
+
+
+
+	// the matrix entries are stored in this variable row-wise. For example if we have the matrix:
+	// M=[a b c 
+	//	  d e f]
+	// the entries are stored as matrixEntries=[a,b,c,d,e,f], that is the variable "matrixEntries" is a row vector
+	// later on, this vector is mapped into the Eigen matrix format
+	std::vector<double> matrixEntries;
+
+	// in this object we store the data from the matrix
+	std::ifstream matrixDataFile(fileToOpen);
+
+	// this variable is used to store the row of the matrix that contains commas 
+	std::string matrixRowString;
+
+    // skip first line
+    getline(matrixDataFile, matrixRowString);
+
+	// this variable is used to store the matrix entry;
+	std::string matrixEntry;
+
+	// this variable is used to track the number of rows
+	int matrixRowNumber = 0;
+
+
+	while (std::getline(matrixDataFile, matrixRowString)) // here we read a row by row of matrixDataFile and store every line into the string variable matrixRowString
+	{
+		std::stringstream matrixRowStringStream(matrixRowString); //convert matrixRowString that is a string to a stream variable.
+        
+
+		while (std::getline(matrixRowStringStream, matrixEntry, ',')) // here we read pieces of the stream matrixRowStringStream until every comma, and store the resulting character into the matrixEntry
+		{
+			matrixEntries.push_back(std::stod(matrixEntry));   //here we convert the string to double and fill in the row vector storing all the matrix entries
+		}
+		matrixRowNumber++; //update the column numbers
+	}
+
+	// here we convet the vector variable into the matrix and return the resulting object, 
+	// note that matrixEntries.data() is the pointer to the first memory location at which the entries of the vector matrixEntries are stored;
+	return Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(matrixEntries.data(), matrixRowNumber, matrixEntries.size() / matrixRowNumber);
+
+}
+
+
+
+std::vector<Eigen::Vector3d> utils::mat2vec3d(Eigen::MatrixXd mat){
+    std::vector<Eigen::Vector3d> out;
+    for (int i=0;i<mat.rows();i++){
+        out.push_back(Eigen::Vector3d{mat(i,Eigen::all).data()});
+    }
+    return out;
+}
+
+void utils::process_orientation(std::vector<Eigen::Vector3d>& orientation){
+
+    for (int i(0); i < orientation.size(); i++)
+	{
+        std::swap(orientation[i].x(),orientation[i].z());
+		//Heading to Yaw
+		orientation[i].z() = 90 - orientation[i].z();
+	}
+}

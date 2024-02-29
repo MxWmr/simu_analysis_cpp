@@ -8,23 +8,21 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Ceres CONFIG REQUIRED)
 find_package(GeographicLib CONFIG REQUIRED)
 find_package(Matplot++ CONFIG REQUIRED)
-find_package(PythonLibs 3)
 
+# Required packages
+find_package(Eigen3 CONFIG REQUIRED)
+
+# Prevent Eigen Alignment issues
 add_definitions(-DEIGEN_DONT_VECTORIZE)
-
     
-add_executable (sensors_fusion_map
+add_executable (simu_analysis
 	main.cpp
 	utils.cpp
 	imu_process.cpp
+	DataWriter.cpp
 	)
 
 
-target_include_directories(${PROJECT_NAME}
-	PUBLIC
-	  ${PROJECT_SOURCE_DIR}/.*.hpp
-	PRIVATE 
-	  ${PYTHON_INCLUDE_DIRS}
-	)
 
-target_link_libraries(simu_analysis Ceres::ceres ${GeographicLib_LIBRARIES} Matplot++::cimg  Matplot++::matplot ${PYTHON_LIBRARIES})
+
+target_link_libraries(simu_analysis Ceres::ceres ${GeographicLib_LIBRARIES} Matplot++::cimg Matplot++::matplot Eigen3::Eigen)

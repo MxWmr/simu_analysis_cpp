@@ -4,15 +4,17 @@
 #include <thread>
 #include <ceres/ceres.h>
 #include "utils.hpp"
+#include <iostream>
+#include <string>
+#include "DataWriter.hpp"
 
-
-typedef std::vector<Eigen::Vector3d> Vect3;
-typedef std::vector<std::time_t> Timevect;
+// typedef std::vector<double> Timevect;
+// typedef std::vector<Eigen::Vector3d> Vect3;
 
 
 class imu_process{
     public:
-    void imu_process(std::string path, std::string simu_name);
+    imu_process(std::string path, std::string simu_name);
     void get_data();
     void orient_dvl();
     void orient_imu();
@@ -29,30 +31,39 @@ class imu_process{
     std::string m_simu_name;
     Eigen::Vector3d m_initpos;
     Eigen::Vector3d m_initspeed;
+    Eigen::Matrix<double, 3, 3> m_misalignement;
 
     std::vector<double> m_depth;
+    std::vector<double> m_depth_dvltime;
     std::vector<double> m_usbllat;
 
-    Vect3 m_refspeed_imutime;    
-    Vect3 m_refpos_imutime;
-    Vect3 m_refspeed_dvltime;
-    Vect3 m_refpos_dvltime;
+    std::vector<Eigen::Vector3d> m_orientation;
+    std::vector<Eigen::Vector3d> m_orientation_dvltime;
+    std::vector<Eigen::Vector3d> m_orientation_imutime;
 
-    Vect3 m_dvlspeed;
-    Vect3 m_dvlpos;
+    std::vector<Eigen::Vector3d> m_refpos;
+    std::vector<Eigen::Vector3d> m_refspeed;
+    std::vector<Eigen::Vector3d> m_refspeed_imutime;    
+    std::vector<Eigen::Vector3d> m_refpos_imutime;
+    std::vector<Eigen::Vector3d> m_refspeed_dvltime;
+    std::vector<Eigen::Vector3d> m_refpos_dvltime;
 
-    Vect3 m_imuaccel;
-    Vect3 m_imuspeed;
-    Vect3 m_imupos;
+    std::vector<Eigen::Vector3d> m_dvlspeed;
+    std::vector<Eigen::Vector3d> m_dvlpos;
 
-    Timevect m_dvltime;
-    Timevect m_imutime;
-    Timevect m_usbltime;
+    std::vector<Eigen::Vector3d> m_imuaccel;
+    std::vector<Eigen::Vector3d> m_imuspeed;
+    std::vector<Eigen::Vector3d> m_imupos;
 
-    Eigen::Matrix<double, 3, 3> m_misalignement;
-    Vect3m_orientation_dvltime;
-    Vect3m_orientation_imutime;
+    std::vector<double>  m_dvltime;
+    std::vector<double>  m_depthtime;
+    std::vector<double>  m_imutime;
+    std::vector<double>  m_usbltime;
+    std::vector<double>  m_reftime;
+    std::vector<double>  m_ortime;
 
-}
+
+
+};
 
 #endif
