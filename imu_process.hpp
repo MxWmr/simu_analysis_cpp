@@ -2,7 +2,6 @@
 #define DEF_IMU_PROCESS
 #include <vector>
 #include <thread>
-#include <ceres/ceres.h>
 #include "utils.hpp"
 #include <iostream>
 #include <string>
@@ -17,7 +16,7 @@ class imu_process{
     imu_process(std::string path, std::string simu_name);
     void get_data();
     void orient_dvl();
-    void orient_imu();
+    void orient_imu(const bool inert=false);
     void integrate_dvl();
     void integrate_imu1();
     void integrate_imu2();
@@ -47,6 +46,10 @@ class imu_process{
     std::vector<Eigen::Vector3d> m_refpos_imutime;
     std::vector<Eigen::Vector3d> m_refspeed_dvltime;
     std::vector<Eigen::Vector3d> m_refpos_dvltime;
+    std::vector<double> m_reflat;
+    std::vector<double> m_refdepth;
+    std::vector<double> m_refdepth_imutime;
+    std::vector<double> m_reflat_imutime;
 
     std::vector<Eigen::Vector3d> m_dvlspeed;
     std::vector<Eigen::Vector3d> m_dvlpos;

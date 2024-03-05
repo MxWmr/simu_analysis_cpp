@@ -1,11 +1,18 @@
-#pragma once
-#include <iomanip>
+#ifndef UTILS_H
+#define UTILS_H
+
+#include <iostream>
+#include <fstream>
 #include <vector>
 #include <random>
 #include <string>
+#include <vector>
+#include <iomanip>
+#include <algorithm> 
+#include <cmath>
 
 #include <Eigen/Dense>
-#include <matplot/matplot.h>
+
 
 const double PI = 3.141592653589793;
 
@@ -14,12 +21,15 @@ struct utils
     static Eigen::Matrix3d get_rotmat(const Eigen::Vector3d& angles);
     static Eigen::Vector3d get_wie(const double Lat, const double h);
     static Eigen::Vector3d get_wen(const double Lat, const Eigen::Vector3d& v, const double h);
+    static Eigen::Vector3d get_g(const double Lat, const double h);
     static Eigen::Vector3d get_local_gravity(const double Lat, const double h, const Eigen::Vector3d& wie);
     static std::vector<double> compute_RmRn(const double Lat);
     static double rmse(std::vector<Eigen::Vector3d> v1, std::vector<Eigen::Vector3d> v2);
     static Eigen::MatrixXd openData(std::string fileToOpen);
 	static std::vector<Eigen::Vector3d> mat2vec3d(Eigen::MatrixXd mat);
 	static void process_orientation(std::vector<Eigen::Vector3d>& orientation);
+	static std::vector<Eigen::Vector3d> interpolateAngles(const std::vector<Eigen::Vector3d>& input, const double& rate, const double& indexOffset, const bool& radiant = false);
+	static Eigen::Vector3d fmodVector(const Eigen::Vector3d& input,const double num);
 
 	template<typename T>
 	static std::vector<T> mat2vec(const Eigen::MatrixXd& mat){
@@ -119,4 +129,20 @@ struct utils
 		return output;
 	}
 
+
+
+
+
+	// template<typename T>
+	// static std::vector<Eigen::Vector3<T>> interpolateAnglesVectors(const std::vector<Eigen::Vector3<T>>  input, const double& rate, const double& indexOffset, const bool& radiant = false)
+	// {
+	// 	std::vector<T> roll = (,rate,indexOffset,radiant)
+	// 	return output;
+	// }
+
+
+
+
 };
+
+#endif

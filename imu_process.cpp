@@ -1,7 +1,6 @@
 #include "imu_process.hpp"
 #include <vector>
 #include <thread>
-#include <ceres/ceres.h>
 #include "utils.hpp"
 #include "DataWriter.hpp"
 
@@ -33,12 +32,26 @@ void imu_process::get_data(){
     m_usbllat = utils::mat2vec<double>(usblmat(Eigen::all,1));
     // m_usblcoord = usblmat(Eigen::all,Eigen::seq(1,3));
     
+    // Orientation
+    Eigen::MatrixXd ormat = utils::openData(full_path+"Orientation.csv");
+    m_ortime = utils::mat2vec<double>(ormat(Eigen::all,0));
+    m_orientation = utils::mat2vec3d(ormat(Eigen::all,Eigen::seq(1,3)));  
+    utils::process_orientation(m_orientation);
+    m_orientation_imutime = m_orientation;
+
+    m_orientation_dvltime = utils::interpolateAngles(m_orientation,10,0);
+
+
+
     // IMU
     Eigen::MatrixXd imumat = utils::openData(full_path+"IMU.csv");
     m_imutime = utils::mat2vec<double>(imumat(Eigen::all,0));
     m_imuaccel = utils::mat2vec3d(imumat(Eigen::all,Eigen::seq(4,6)));    
 
-    // DEPTH
+    m_imuaccel = utils::interpolateVector(m_imuaccel,m_imutime,m_ortime);
+    m_imutime = m_ortime;
+
+    // Depth
     Eigen::MatrixXd depthmat = utils::openData(full_path+"Depth.csv");
     m_depthtime = utils::mat2vec<double>(depthmat(Eigen::all,0));
     m_depth = utils::mat2vec<double>(depthmat(Eigen::all,1));    
@@ -47,8 +60,8 @@ void imu_process::get_data(){
     //Ref
     Eigen::MatrixXd refmat = utils::openData(full_path+"Reference.csv");
     m_reftime = utils::mat2vec<double>(refmat(Eigen::all,0));
-    m_refspeed = utils::mat2vec3d(refmat(Eigen::all,Eigen::seq(4,6)));
-    m_refpos = utils::mat2vec3d(refmat(Eigen::all,Eigen::seq(1,3)));  
+    m_refspeed = utils::mat2vec3d(refmat(Eigen::all,Eigen::seq(7,9)));
+    m_refpos = utils::mat2vec3d(refmat(Eigen::all,Eigen::seq(4,6)));  
 
     m_refpos_dvltime = utils::interpolateVector(m_refpos,m_reftime,m_dvltime);
     m_refpos_imutime = utils::interpolateVector(m_refpos,m_reftime,m_imutime);
@@ -56,15 +69,20 @@ void imu_process::get_data(){
     m_refspeed_dvltime = utils::interpolateVector(m_refspeed,m_reftime,m_dvltime);
     m_refspeed_imutime = utils::interpolateVector(m_refspeed,m_reftime,m_imutime);
 
-    // m_refspeed_dvltime = utils::deriveVector(m_refpos_dvltime);
-    // m_refspeed_imutime = utils::deriveVector(m_refpos_imutime);
+    m_reflat =  utils::mat2vec<double>(refmat(Eigen::all,1));
+    m_refdepth = utils::mat2vec<double>(refmat(Eigen::all,3));
+    m_refdepth_imutime = utils::interpolate<double>(m_refdepth,m_reftime,m_imutime);
+    m_reflat_imutime = utils::interpolate<double>(m_reflat,m_reftime,m_imutime);
 
-    Eigen::MatrixXd ormat = utils::openData(full_path+"Orientation.csv");
-    m_ortime = utils::mat2vec<double>(ormat(Eigen::all,0));
-    m_orientation = utils::mat2vec3d(refmat(Eigen::all,Eigen::seq(1,3)));  
-    utils::process_orientation(m_orientation);
-    m_orientation_dvltime = utils::interpolateVector(m_orientation,m_ortime,m_dvltime);
-    m_orientation_imutime = utils::interpolateVector(m_orientation,m_ortime,m_imutime); 
+    m_initspeed = m_refspeed[0];
+    m_initpos = m_refpos[0];
+
+
+    // Parameters
+    Eigen::MatrixXd parmat = utils::openData(full_path+"Parameters.csv");
+    Eigen::Vector3d angles = Eigen::Vector3d{parmat(Eigen::all,0)};
+    m_misalignement = utils::get_rotmat(angles);
+
 
     std::cout << "Done !"<<std::endl;
 
@@ -76,30 +94,36 @@ void imu_process::orient_dvl(){
 
     for (int i=0;i<m_dvlspeed.size();i++){
         Eigen::Matrix3d orient_mat = utils::get_rotmat(m_orientation_dvltime[i]);
-        m_dvlspeed[i] = m_misalignement * (orient_mat * m_dvlspeed[i]);
+        m_dvlspeed[i] = orient_mat*(m_misalignement * m_dvlspeed[i]);
     }
 
     std::cout << "Done !" << std::endl;
 }
 
-void imu_process::orient_imu(){
+void imu_process::orient_imu(const bool inert){
     std::cout << "Orient IMU ..."<<std::endl;
-    int k(0),l(0);
+    // int k(0),l(0);
     for (int i=0;i<m_imuaccel.size();i++){
-        Eigen::Vector3d v = m_dvlspeed[k];
-        double h = m_depth_dvltime[k];
-        double Lat = m_usbllat[l];
+        Eigen::Vector3d v = m_refspeed_imutime[i];
+        double h = m_refdepth_imutime[i]; // - because depth is not altitude !!
+        double Lat = m_reflat_imutime[i]*EIGEN_PI/180.;
+
         Eigen::Matrix3d orient_mat = utils::get_rotmat(m_orientation_imutime[i]);
         // TO COMPLETE
-        Eigen::Vector3d wie = utils::get_wie(Lat,h);
-        Eigen::Vector3d wen = utils::get_wen(Lat,v,h);
-        m_imuaccel[i] = orient_mat * m_imuaccel[i]*50. - utils::get_local_gravity(Lat,h,wie) - (2*wie+wen).cross(v);
-        if (m_dvltime[k]>m_imutime[i-1] && m_dvltime[k]<m_imutime[i] && k<m_dvltime.size()-1){
-            k+=1;
-        }               
-        if (m_usbltime[l]>m_imutime[i-1] and m_usbltime[l]<m_imutime[i] and l<m_usbltime.size()-1){
-            l+=1;
+        if (inert){
+            Eigen::Vector3d wie = utils::get_wie(Lat,h);
+            Eigen::Vector3d wen = utils::get_wen(Lat,v,h);
+            m_imuaccel[i] = orient_mat * m_imuaccel[i]*50. + utils::get_local_gravity(Lat,h,wie) + (2*wie+wen).cross(v);         
         }
+        else{
+            m_imuaccel[i] =  orient_mat * m_imuaccel[i]*50. + utils::get_g(Lat,h);
+        }
+        // if (m_dvltime[k]>m_imutime[i-1] && m_dvltime[k]<m_imutime[i] && k<m_dvltime.size()-1){
+        //     k+=1;
+        // }               
+        // if (m_usbltime[l]>m_imutime[i-1] and m_usbltime[l]<m_imutime[i] and l<m_usbltime.size()-1){
+        //     l+=1;
+        // }
 
     }
     std::cout << "Done !"<<std::endl;
@@ -128,8 +152,8 @@ void imu_process::integrate_imu1(){
     Eigen::Vector3d v_0 = m_initspeed;
     std::vector<Eigen::Vector3d>  imuspeed;
     imuspeed.push_back(v_0);
-
-    for (int i=1;i<m_imuaccel.size();i++){
+    imuspeed.push_back(imuspeed[0] + (m_imutime[1]-m_imutime[0]) * m_imuaccel[1]);
+    for (int i=2;i<m_imuaccel.size();i++){
         imuspeed.push_back(imuspeed[i-1] + (m_imutime[i]-m_imutime[i-1])*(m_imuaccel[i]+m_imuaccel[i-1])*0.5); 
     }
 

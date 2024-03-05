@@ -52,18 +52,18 @@ class plotter:
         plt.figure(1)
         plt.subplot(311)
         plt.plot(self.dvltime,self.dvlspeed[:,0],label='dvl')
-        # plt.plot(self.imutime,self.imuspeed[:,0],label='imu')
+        plt.plot(self.imutime,self.imuspeed[:,0],label='imu')
         # plt.plot(self.imutime,self.refspeed_imutime[:,0],label='ref')
 
         plt.subplot(312)
         plt.plot(self.dvltime,self.dvlspeed[:,1],label='dvl')
-        # plt.plot(self.imutime,self.imuspeed[:,1],label='imu')
+        plt.plot(self.imutime,self.imuspeed[:,1],label='imu')
         # plt.plot(self.imutime,self.refspeed_imutime[:,1],label='ref')
 
 
         plt.subplot(313)
         plt.plot(self.dvltime,self.dvlspeed[:,2],label='dvl')
-        # plt.plot(self.imutime,self.imuspeed[:,2],label='imu')
+        plt.plot(self.imutime,self.imuspeed[:,2],label='imu')
         # plt.plot(self.imutime,self.refspeed_imutime[:,2],label='ref')
 
 
@@ -75,18 +75,18 @@ class plotter:
     def plotpos(self):
         plt.figure(1)
         plt.subplot(311)
-        # plt.plot(self.dvltime,self.dvlpos[:,0],label='dvl')
-        # plt.plot(self.imutime,self.imupos[:,0],label='imu')
+        plt.plot(self.dvltime,self.dvlpos[:,0],label='dvl')
+        plt.plot(self.imutime,self.imupos[:,0],label='imu')
         plt.plot(self.imutime,self.refpos_imutime[:,0],label='ref')
 
         plt.subplot(312)
-        # plt.plot(self.dvltime,self.dvlpos[:,1],label='dvl')
-        # plt.plot(self.imutime,self.imupos[:,1],label='imu')
+        plt.plot(self.dvltime,self.dvlpos[:,1],label='dvl')
+        plt.plot(self.imutime,self.imupos[:,1],label='imu')
         plt.plot(self.imutime,self.refpos_imutime[:,1],label='ref')
 
         plt.subplot(313)
-        # plt.plot(self.dvltime,self.dvlpos[:,2],label='dvl')
-        # plt.plot(self.imutime,self.imupos[:,2],label='imu')
+        plt.plot(self.dvltime,self.dvlpos[:,2],label='dvl')
+        plt.plot(self.imutime,self.imupos[:,2],label='imu')
         plt.plot(self.imutime,self.refpos_imutime[:,2],label='ref')
 
 
@@ -108,7 +108,7 @@ class plotter:
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
-
+        plt.legend()
         plt.show()
         plt.close()
 

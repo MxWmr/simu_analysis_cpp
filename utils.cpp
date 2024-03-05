@@ -1,13 +1,13 @@
 #include "utils.hpp"
 #include <cmath>
 #include <iostream>
-
+#include <fstream>
 
 Eigen::Matrix3d utils::get_rotmat(const Eigen::Vector3d& angles)
 {
-    double phi = angles.x();
-    double theta =  angles.y();
-    double psi =  angles.z();
+    double phi = angles.x()*PI/180.;
+    double theta =  angles.y()*PI/180.;
+    double psi =  angles.z()*PI/180.;
 
 	double c_phi = std::cos(phi);
 	double s_phi = std::sin(phi);
@@ -30,7 +30,7 @@ Eigen::Matrix3d utils::get_rotmat(const Eigen::Vector3d& angles)
 
 Eigen::Vector3d utils::get_wie(const double Lat, const double h)
 {
-    double w = 7.292115*1e-5; 
+    double w = 7.29211505e-5; 
     Eigen::Vector3d wie;
     wie[0] = 0.;
     wie[1] = w*std::cos(Lat);
@@ -52,18 +52,27 @@ Eigen::Vector3d utils::get_wen(const double Lat, const Eigen::Vector3d& v, const
     return wen;
 }
 
+
+Eigen::Vector3d utils:: get_g(const double Lat, const double h)
+{
+    Eigen::Vector3d g;
+    double g0 = 9.780327;
+    double g_ = g0*(1+5.2790414e-3*(std::pow(std::sin(Lat),2))+2.32718e-5*(std::pow(std::sin(Lat),4))+1.262e-7*(std::pow(std::sin(Lat),6))+7e-10*(std::pow(std::sin(Lat),8)))-3.085e-6*h;
+ 
+    g[0] = 0.;
+    g[1] = 0.;
+    g[2] = -g_;
+
+    return g;
+}
+
+
 Eigen::Vector3d utils:: get_local_gravity(const double Lat, const double h, const Eigen::Vector3d& wie)
 {
-    Eigen::Vector3d gl;
-    double g0 = 9.780326;
-    double g = g0*(1+5.27904*1e-3*(std::pow(std::sin(Lat),2))+2.32718*1e-5*(std::pow(std::sin(Lat),4)))-3.085*1e-6*h;
-    
-    gl[0] = 0.;
-    gl[1] = 0.;
-    gl[2] = -g;
+    Eigen::Vector3d gl = get_g(Lat,h);
 
-
-    double e = 0.08181919;
+    double f =  1 / 298.257223563;
+    double e2 = f * (2 - f);
     std::vector<double> RmRn = compute_RmRn(Lat);
     double Rm = RmRn[0];
     double Rn = RmRn[1];
@@ -71,7 +80,7 @@ Eigen::Vector3d utils:: get_local_gravity(const double Lat, const double h, cons
     Eigen::Vector3d r;
     r[0] = 0.;
     r[1] = 0.;
-    r[2] = (1-e*e)*Rn+h;   // sure ?
+    r[2] = (1-e2)*Rn+h;   // sure ?
 
     gl = gl - wie.cross(wie.cross(r));
     return gl;
@@ -81,10 +90,11 @@ std::vector<double> utils::compute_RmRn(const double Lat)
 {
 
     double R = 6378137.0;
-    double e = 0.08181919;
+    double f =  1 / 298.257223563;
+    double e2 = f * (2 - f);
     std::vector<double> RmRn(2);
-    RmRn[0] = R*(1-e*e)/std::pow((1-e*e*std::pow(std::sin(Lat),2)),3./2.);
-    RmRn[1] = R/std::pow((1-e*e*std::pow(std::sin(Lat),2)),1./2.);
+    RmRn[0] = R*(1-e2)/std::pow((1-e2*std::pow(std::sin(Lat),2)),3./2.);
+    RmRn[1] = R/std::sqrt(1-e2*std::pow(std::sin(Lat),2));
 
     return RmRn;
 }
@@ -162,7 +172,7 @@ Eigen::MatrixXd utils::openData(std::string fileToOpen)
 std::vector<Eigen::Vector3d> utils::mat2vec3d(Eigen::MatrixXd mat){
     std::vector<Eigen::Vector3d> out;
     for (int i=0;i<mat.rows();i++){
-        out.push_back(Eigen::Vector3d{mat(i,Eigen::all).data()});
+        out.push_back(Eigen::Vector3d{mat(i,Eigen::all)});
     }
     return out;
 }
@@ -172,7 +182,55 @@ void utils::process_orientation(std::vector<Eigen::Vector3d>& orientation){
     for (int i(0); i < orientation.size(); i++)
 	{
         std::swap(orientation[i].x(),orientation[i].z());
+        std::swap(orientation[i].x(),orientation[i].y());
 		//Heading to Yaw
 		orientation[i].z() = 90 - orientation[i].z();
 	}
 }
+
+
+ std::vector<Eigen::Vector3d> utils::interpolateAngles(const std::vector<Eigen::Vector3d>& input, const double& rate, const double& indexOffset, const bool& radiant)
+{
+    if (rate == 1.) return std::vector<Eigen::Vector3d>(input); // If rate = 1, there is no interpolation
+
+
+    std::size_t outputSize = std::size_t(std::floor(input.size() / rate));
+    std::vector<Eigen::Vector3d> output(outputSize);
+
+    double inputIndex = indexOffset;
+    std::size_t outputIndex = 0;
+
+    double period;
+    if (radiant) period = 2 * EIGEN_PI;
+    else period = 360;
+
+    while (std::size_t(inputIndex) < input.size() && outputIndex < output.size())
+    {
+        Eigen::Vector3d previous = input[std::size_t(std::floor(inputIndex))];
+        Eigen::Vector3d next = input[std::size_t(std::floor(inputIndex)) + 1];
+
+        double interpolation_coefficent = inputIndex - std::size_t(std::floor(inputIndex));
+
+        Eigen::Vector3d deltaAngles = fmodVector(next - previous, period);
+        Eigen::Vector3d shortestDistance = fmodVector(2 * deltaAngles, period) - deltaAngles;
+        // std::cout<< <<std::endl;
+        // If inputIndex is an integer, interpolation_coefficent = 0 and output[outputIndex] = previous;
+        output[outputIndex] = fmodVector(previous + interpolation_coefficent * shortestDistance, period);
+
+        // Increment
+        inputIndex += rate;
+        outputIndex++;
+        
+    }
+
+
+    return output;
+};
+
+Eigen::Vector3d utils::fmodVector(const Eigen::Vector3d& input,const double num){
+    Eigen::Vector3d output;
+    for (int i=0;i<input.size();i++){
+        output[i] = fmod(input[i],num);
+    }
+    return output;
+};

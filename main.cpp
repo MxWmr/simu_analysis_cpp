@@ -1,8 +1,6 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <ceres/ceres.h>
-#include <matplot/matplot.h>
 #include <cmath>
 #include <algorithm> 
 
@@ -13,10 +11,11 @@
 int main(){
 
     // Parameters of the analysis
-    std::string simu_shape = "TEST"; // "LINE" "TEST" "SQUARE" "8TURN" "HELICOIDAL" "TRIANGLE"
+    std::string simu_shape = "LINE"; // "LINE" "TEST" "SQUARE" "8TURN" "HELICOIDAL" "TRIANGLE"
     std::string noise = "0"; // "1" for noise
     std::string simu_name = "SINS_CPP_"+simu_shape+"/"+"SIM_"+noise+"/";
     std::string path = "/home/maxwmr/Documents/work/data2/";
+    bool inert = true;
     bool export_tofile = true;
 
 
@@ -30,7 +29,7 @@ int main(){
 
     //orient DVL and IMU in navigtation referential
     process.orient_dvl();
-    process.orient_imu();
+    process.orient_imu(inert);
 
     //integrate DVL and IMU to get speed and position
     process.integrate_dvl();

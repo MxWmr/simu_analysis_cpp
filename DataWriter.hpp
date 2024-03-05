@@ -7,7 +7,6 @@
 #include <iomanip>
 #include <string>
 #include <vector>
-
 #include <Eigen/Dense>
 
 class DataWriter
