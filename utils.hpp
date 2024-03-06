@@ -28,7 +28,8 @@ struct utils
     static Eigen::MatrixXd openData(std::string fileToOpen);
 	static std::vector<Eigen::Vector3d> mat2vec3d(Eigen::MatrixXd mat);
 	static void process_orientation(std::vector<Eigen::Vector3d>& orientation);
-	static std::vector<Eigen::Vector3d> interpolateAngles(const std::vector<Eigen::Vector3d>& input, const double& rate, const double& indexOffset, const bool& radiant = false);
+	static std::vector<Eigen::Vector3d> interpolateAngles3d(const std::vector<Eigen::Vector3d>& input, const double& rate, const double& indexOffset, const bool& radiant = false);
+	static std::vector<double> interpolateAngles(const std::vector<double>& input, const double& rate, const double& indexOffset, const bool& radiant = false);
 	static Eigen::Vector3d fmodVector(const Eigen::Vector3d& input,const double num);
 
 	template<typename T>

@@ -111,12 +111,39 @@ class plotter:
         plt.legend()
         plt.show()
         plt.close()
+    
+    def plot_diff(self,vec1,vec2):
 
+        
+        l_diff = []
+        
+        for i in range(0,len(self.imutime)):
+                    l_diff.append(vec1[i]-vec2[i])
+                   
+
+        l_diff = np.array(l_diff)
+        plt.figure(1)
+        plt.subplot(311)
+        plt.plot(self.imutime,l_diff[:,0])
+        plt.subplot(312)
+        plt.plot(self.imutime,l_diff[:,1])
+        plt.subplot(313)
+        plt.plot(self.imutime,l_diff[:,2])
+        plt.show()    
+        
 
 
 pl = plotter('SINS_TEST/SIMU_0')
 
-pl.plotaccel()
-pl.plotspeed()
-pl.plotpos()
-pl.plot3d()
+# pl.plotaccel()
+# pl.plotspeed()
+# pl.plotpos()
+# pl.plot3d()
+# pl.plot_diff(pl.refspeed_imutime,pl.imuspeed)
+# pl.plot_diff(pl.refpos_imutime,pl.imupos)
+s_rmse = np.sqrt(np.mean((pl.refspeed_imutime-pl.imuspeed)**2))
+
+print("RMSE SPEED: ",s_rmse)
+
+s_rmse =  np.sqrt(np.mean((pl.refpos_imutime-pl.imupos)**2))
+print("RMSE POS: ",s_rmse)

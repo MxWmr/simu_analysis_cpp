@@ -39,7 +39,7 @@ void imu_process::get_data(){
     utils::process_orientation(m_orientation);
     m_orientation_imutime = m_orientation;
 
-    m_orientation_dvltime = utils::interpolateAngles(m_orientation,10,0);
+    m_orientation_dvltime = utils::interpolateAngles3d(m_orientation,10,0);
 
 
 
@@ -72,7 +72,8 @@ void imu_process::get_data(){
     m_reflat =  utils::mat2vec<double>(refmat(Eigen::all,1));
     m_refdepth = utils::mat2vec<double>(refmat(Eigen::all,3));
     m_refdepth_imutime = utils::interpolate<double>(m_refdepth,m_reftime,m_imutime);
-    m_reflat_imutime = utils::interpolate<double>(m_reflat,m_reftime,m_imutime);
+    // m_reflat_imutime = utils::interpolate<double>(m_reflat,m_reftime,m_imutime);
+    m_reflat_imutime = utils::interpolateAngles(m_reflat,5,0);
 
     m_initspeed = m_refspeed[0];
     m_initpos = m_refpos[0];
@@ -113,17 +114,12 @@ void imu_process::orient_imu(const bool inert){
         if (inert){
             Eigen::Vector3d wie = utils::get_wie(Lat,h);
             Eigen::Vector3d wen = utils::get_wen(Lat,v,h);
-            m_imuaccel[i] = orient_mat * m_imuaccel[i]*50. + utils::get_local_gravity(Lat,h,wie) + (2*wie+wen).cross(v);         
+            m_imuaccel[i] = orient_mat * m_imuaccel[i]*50. + utils::get_local_gravity(Lat,h,wie) - (2*wie+wen).cross(v);         
         }
         else{
             m_imuaccel[i] =  orient_mat * m_imuaccel[i]*50. + utils::get_g(Lat,h);
         }
-        // if (m_dvltime[k]>m_imutime[i-1] && m_dvltime[k]<m_imutime[i] && k<m_dvltime.size()-1){
-        //     k+=1;
-        // }               
-        // if (m_usbltime[l]>m_imutime[i-1] and m_usbltime[l]<m_imutime[i] and l<m_usbltime.size()-1){
-        //     l+=1;
-        // }
+
 
     }
     std::cout << "Done !"<<std::endl;

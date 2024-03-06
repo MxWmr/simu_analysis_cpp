@@ -80,7 +80,7 @@ Eigen::Vector3d utils:: get_local_gravity(const double Lat, const double h, cons
     Eigen::Vector3d r;
     r[0] = 0.;
     r[1] = 0.;
-    r[2] = (1-e2)*Rn+h;   // sure ?
+    r[2] = (1-e2)*Rn+h;   
 
     gl = gl - wie.cross(wie.cross(r));
     return gl;
@@ -102,7 +102,7 @@ std::vector<double> utils::compute_RmRn(const double Lat)
 double utils::rmse(std::vector<Eigen::Vector3d> v1, std::vector<Eigen::Vector3d> v2){
     double rmse = 0;
     for (int i=0;i<v1.size();i++){
-        rmse+= (v1[i]-v2[i]).squaredNorm();
+        rmse+= (v1[i]-v2[i]).array().square().mean();
     }
     rmse /= v1.size();
     rmse = std::sqrt(rmse);
@@ -189,7 +189,7 @@ void utils::process_orientation(std::vector<Eigen::Vector3d>& orientation){
 }
 
 
- std::vector<Eigen::Vector3d> utils::interpolateAngles(const std::vector<Eigen::Vector3d>& input, const double& rate, const double& indexOffset, const bool& radiant)
+ std::vector<Eigen::Vector3d> utils::interpolateAngles3d(const std::vector<Eigen::Vector3d>& input, const double& rate, const double& indexOffset, const bool& radiant)
 {
     if (rate == 1.) return std::vector<Eigen::Vector3d>(input); // If rate = 1, there is no interpolation
 
@@ -226,6 +226,45 @@ void utils::process_orientation(std::vector<Eigen::Vector3d>& orientation){
 
     return output;
 };
+
+ std::vector<double> utils::interpolateAngles(const std::vector<double>& input, const double& rate, const double& indexOffset, const bool& radiant)
+{
+    if (rate == 1.) return std::vector<double>(input); // If rate = 1, there is no interpolation
+
+
+    std::size_t outputSize = std::size_t(std::floor(input.size() / rate));
+    std::vector<double> output(outputSize);
+
+    double inputIndex = indexOffset;
+    std::size_t outputIndex = 0;
+
+    double period;
+    if (radiant) period = 2 * EIGEN_PI;
+    else period = 360;
+
+    while (std::size_t(inputIndex) < input.size() && outputIndex < output.size())
+    {
+        double previous = input[std::size_t(std::floor(inputIndex))];
+        double next = input[std::size_t(std::floor(inputIndex)) + 1];
+
+        double interpolation_coefficent = inputIndex - std::size_t(std::floor(inputIndex));
+
+        double deltaAngles = fmod(next - previous, period);
+        double shortestDistance = fmod(2 * deltaAngles, period) - deltaAngles;
+        // std::cout<< <<std::endl;
+        // If inputIndex is an integer, interpolation_coefficent = 0 and output[outputIndex] = previous;
+        output[outputIndex] = fmod(previous + interpolation_coefficent * shortestDistance, period);
+
+        // Increment
+        inputIndex += rate;
+        outputIndex++;
+        
+    }
+
+
+    return output;
+};
+
 
 Eigen::Vector3d utils::fmodVector(const Eigen::Vector3d& input,const double num){
     Eigen::Vector3d output;
