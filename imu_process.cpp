@@ -58,6 +58,7 @@ void imu_process::get_data(){
     m_depth_dvltime = utils::interpolate<double>(m_depth,m_depthtime,m_dvltime);
 
     //Ref
+
     Eigen::MatrixXd refmat = utils::openData(full_path+"Reference.csv");
     m_reftime = utils::mat2vec<double>(refmat(Eigen::all,0));
     m_refspeed = utils::mat2vec3d(refmat(Eigen::all,Eigen::seq(7,9)));
@@ -72,7 +73,6 @@ void imu_process::get_data(){
     m_reflat =  utils::mat2vec<double>(refmat(Eigen::all,1));
     m_refdepth = utils::mat2vec<double>(refmat(Eigen::all,3));
     m_refdepth_imutime = utils::interpolate<double>(m_refdepth,m_reftime,m_imutime);
-    // m_reflat_imutime = utils::interpolate<double>(m_reflat,m_reftime,m_imutime);
     m_reflat_imutime = utils::interpolateAngles(m_reflat,5,0);
 
     m_initspeed = m_refspeed[0];
@@ -122,6 +122,7 @@ void imu_process::orient_imu(const bool inert){
 
 
     }
+
     std::cout << "Done !"<<std::endl;
 }
 

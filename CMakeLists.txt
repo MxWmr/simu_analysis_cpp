@@ -16,6 +16,7 @@ add_executable(${PROJECT_NAME}
 	main.cpp
 	utils.cpp
 	imu_process.cpp
+	imu_process_real.cpp
 	DataWriter.cpp
 )
 

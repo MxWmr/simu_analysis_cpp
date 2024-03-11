@@ -273,3 +273,50 @@ Eigen::Vector3d utils::fmodVector(const Eigen::Vector3d& input,const double num)
     }
     return output;
 };
+
+std::vector<Eigen::Vector3d> utils::geo2enu(const std::vector<Eigen::Vector3d>& geoPositions)
+{
+	std::vector<Eigen::Vector3d> enuPositions(geoPositions.size());
+
+	enuPositions[0] = Eigen::Vector3d::Zero();
+
+	//Get ENU Speed with Geodetic Position variations
+	double lat;
+	double alt;
+
+	double RN;
+	double RM;
+
+	for (std::size_t i = 1; i < enuPositions.size(); i++)
+	{
+		lat = geoPositions[i].x();
+		alt = geoPositions[i].z();
+
+		RN = primeVerticalRadius(lat);
+		RM = meridionalRadius(lat);
+
+		enuPositions[i].x() = enuPositions[i - 1].x() + (RN + alt) * (geoPositions[i].y() - geoPositions[i - 1].y()) * std::cos(lat);
+		enuPositions[i].y() = enuPositions[i - 1].y() + (RM + alt) * (geoPositions[i].x() - geoPositions[i - 1].x());
+		enuPositions[i].z() = enuPositions[i - 1].z() + (geoPositions[i].z() - geoPositions[i - 1].z());
+	}
+
+	return enuPositions;
+};
+
+double utils::primeVerticalRadius(const double& latitude) 
+{
+	double s_lat = std::sin(latitude);
+    double a = 6378137.0;
+    double f = 1 / 298.257223563;
+    double e2 = f * (2 - f);
+	return a / std::sqrt(1 - e2 * s_lat * s_lat);
+};
+
+double utils::meridionalRadius(const double& latitude) 
+{
+	double RN = primeVerticalRadius(latitude);
+    double a = 6378137.0;
+    double f = 1 / 298.257223563;
+    double e2 = f * (2 - f);
+	return std::pow(RN, 3) * (1 - e2) / (a * a);
+};

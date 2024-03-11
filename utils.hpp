@@ -31,6 +31,10 @@ struct utils
 	static std::vector<Eigen::Vector3d> interpolateAngles3d(const std::vector<Eigen::Vector3d>& input, const double& rate, const double& indexOffset, const bool& radiant = false);
 	static std::vector<double> interpolateAngles(const std::vector<double>& input, const double& rate, const double& indexOffset, const bool& radiant = false);
 	static Eigen::Vector3d fmodVector(const Eigen::Vector3d& input,const double num);
+	static std::vector<Eigen::Vector3d> geo2enu(const std::vector<Eigen::Vector3d>& geoPositions);
+	static double primeVerticalRadius(const double& latitude); 
+	static double meridionalRadius(const double& latitude); 
+
 
 	template<typename T>
 	static std::vector<T> mat2vec(const Eigen::MatrixXd& mat){
