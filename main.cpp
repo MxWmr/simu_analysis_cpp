@@ -13,7 +13,7 @@ int main(){
 
     bool simu =false;
 
-
+    bool optim_bias = true;
     bool inert = false;
     bool export_tofile = true;
     bool res_rmse = true;
@@ -71,6 +71,11 @@ int main(){
 
         // get data from files
         process.get_data();
+
+
+        if (optim_bias){
+            process.remove_bias()
+        }
 
         //orient DVL and IMU in navigtation referential
         process.orient_dvl();

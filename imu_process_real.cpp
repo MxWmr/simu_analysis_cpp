@@ -274,3 +274,38 @@ void imu_process_real::export_results(){
 
 
 }
+
+void imu_process_real::remove_bias(){
+    Eigen::Vector3d estimated_bias = Eigen::Zero(3);
+    double estimated_scale_factor = 1;
+
+    ceres::Problem problem;
+    problem.AddParameterBlock(estimated_bias.data(),3);
+    problem.AddParameterBlock(estimated_scale_factor.data(),1);
+    problem.AddResidualBlock(new ceres::AutoDiffCostFunction<Residual, 1, 3>(new Residual() ),
+                            nullptr,
+                            estimated_scale_factor.data(),
+                            estimated_bias.data());
+
+    //Options
+	ceres::Solver::Options options;
+	options.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;   
+	options.trust_region_strategy_type = ceres::LEVENBERG_MARQUARDT;
+
+
+	const unsigned int processor_count = std::thread::hardware_concurrency();
+	if (processor_count != 0)
+	{
+		options.num_threads = processor_count;
+	}
+	options.max_num_iterations = 10000;
+
+
+    options.minimizer_progress_to_stdout = true;
+
+    ceres::Solver::Summary summary;
+    ceres::Solve(options, &problem, &summary);
+    std::cout << summary.FullReport() << std::endl;
+
+
+}

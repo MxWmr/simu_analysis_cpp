@@ -9,6 +9,29 @@
 
 // typedef std::vector<double> Timevect;
 // typedef std::vector<Eigen::Vector3d> Vect3;
+// Residual fonctor of USBL
+struct Residuals{
+    Residuals_usbl(){
+        m_std.setZero();
+        m_std(0,0) = 1./ 3.;
+        m_std(1,1) = 1./ 3.;
+        m_std(2,2) = 1./ 3.;
+    }
+
+    template <typename T>
+    bool operator()(const T *const X,T *residual) const{
+
+        Eigen::Map<const Eigen::Matrix<T,3,1>> P_X(X);
+        Eigen::Map<Eigen::Matrix<T,3,1>> werr(residual);
+
+        werr = m_std * (P_X - m_P);
+
+        return true;
+    }
+    private:
+    Eigen::Vector3d m_P;
+    Eigen::Matrix3d m_std;
+};
 
 
 class imu_process_real{
@@ -23,6 +46,7 @@ class imu_process_real{
     void export_results();
 	std::pair<int, int> cutTime(std::vector<double>& time, const double& beginTime, const double& endTime = INFINITY);
 	void keepDataInSameInterval();
+    void remove_bias();
 
 
 
