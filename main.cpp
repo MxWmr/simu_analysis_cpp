@@ -3,6 +3,7 @@
 #include <string>
 #include <cmath>
 #include <algorithm> 
+#include <ceres/ceres.h>
 
 // include other files
 #include "imu_process.hpp"
@@ -74,7 +75,7 @@ int main(){
 
 
         if (optim_bias){
-            process.remove_bias()
+            process.remove_bias();
         }
 
         //orient DVL and IMU in navigtation referential

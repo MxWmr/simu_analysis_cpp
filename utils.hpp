@@ -18,7 +18,6 @@ const double PI = 3.141592653589793;
 
 struct utils
 {
-    static Eigen::Matrix3d get_rotmat(const Eigen::Vector3d& angles);
     static Eigen::Vector3d get_wie(const double Lat, const double h);
     static Eigen::Vector3d get_wen(const double Lat, const Eigen::Vector3d& v, const double h);
     static Eigen::Vector3d get_g(const double Lat, const double h);
@@ -34,6 +33,34 @@ struct utils
 	static std::vector<Eigen::Vector3d> geo2enu(const std::vector<Eigen::Vector3d>& geoPositions);
 	static double primeVerticalRadius(const double& latitude); 
 	static double meridionalRadius(const double& latitude); 
+
+	template<typename T>
+	static Eigen::Matrix3<T> get_rotmat(const Eigen::Vector3<T>& angles)
+	{
+		double phi = angles.x()*PI/180.;
+		double theta =  angles.y()*PI/180.;
+		double psi =  angles.z()*PI/180.;
+
+		double c_phi = std::cos(phi);
+		double s_phi = std::sin(phi);
+
+		double c_theta = std::cos(theta);
+		double s_theta = std::sin(theta);
+
+		double c_psi = std::cos(psi);
+		double s_psi = std::sin(psi);
+
+		Eigen::Matrix3<T> rotation;
+
+		rotation << c_theta * c_psi, c_psi* s_theta* s_phi - c_phi * s_psi, c_phi* c_psi* s_theta + s_phi * s_psi,
+			c_theta* s_psi, s_phi* s_theta* s_psi + c_phi * c_psi, c_phi* s_theta* s_psi - c_psi * s_phi,
+			-s_theta, c_theta* s_phi, c_phi* c_theta;
+
+		return rotation;
+	}
+
+
+
 
 
 	template<typename T>

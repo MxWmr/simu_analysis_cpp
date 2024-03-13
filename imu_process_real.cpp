@@ -36,7 +36,6 @@ void imu_process_real::get_data(){
     m_imutime = utils::mat2vec<double>(imumat(Eigen::all,0));
     m_imuaccel = utils::mat2vec3d(imumat(Eigen::all,Eigen::seq(4,6)));    
 
-
     // DVL
     Eigen::MatrixXd dvlmat = utils::openData(full_path+"DVL.csv");
     m_dvltime = utils::mat2vec<double>(dvlmat(Eigen::all,0));
@@ -70,6 +69,7 @@ void imu_process_real::get_data(){
     // m_imutime = m_ortime;
     m_orientation_imutime = utils::interpolateAngles3d(m_orientation,0.2,0);
     m_ortime = m_imutime;
+    m_imuaccel0 = m_imuaccel;
 
     m_depth_imutime = utils::interpolate<double>(m_depth,m_depthtime,m_imutime);
 
@@ -176,7 +176,7 @@ void imu_process_real::orient_imu(const bool inert){
         if (inert){
             Eigen::Vector3d wie = utils::get_wie(Lat,h);
             Eigen::Vector3d wen = utils::get_wen(Lat,v,h);
-            m_imuaccel[i] = orient_mat * m_imuaccel[i]*50.*1e-7 + utils::get_local_gravity(Lat,h,wie) - (2*wie+wen).cross(v);  
+            m_imuaccel[i] = orient_mat * (m_imuaccel[i]*50.*1e-7) + utils::get_local_gravity(Lat,h,wie) - (2*wie+wen).cross(v);  
         }
         else{
             m_imuaccel[i] =  orient_mat * m_imuaccel[i]*50.*1e-7 + utils::get_g(Lat,h);
@@ -275,17 +275,21 @@ void imu_process_real::export_results(){
 
 }
 
-void imu_process_real::remove_bias(){
-    Eigen::Vector3d estimated_bias = Eigen::Zero(3);
-    double estimated_scale_factor = 1;
 
+
+void imu_process_real::remove_bias(){
+    // Eigen::Vector3d estimated_bias = {0.0, 0.0, 0.0};
+    // double estimated_scale_factor = 1;
+    double estimated_bias[3]{0};
+    double estimated_scale_factor[1]{1};
+    
     ceres::Problem problem;
-    problem.AddParameterBlock(estimated_bias.data(),3);
-    problem.AddParameterBlock(estimated_scale_factor.data(),1);
-    problem.AddResidualBlock(new ceres::AutoDiffCostFunction<Residual, 1, 3>(new Residual() ),
+    problem.AddParameterBlock(estimated_bias,3);
+    problem.AddParameterBlock(estimated_scale_factor,1);
+    problem.AddResidualBlock(new ceres::AutoDiffCostFunction<Residual, 1, 1, 3>(new Residual(*this) ),
                             nullptr,
-                            estimated_scale_factor.data(),
-                            estimated_bias.data());
+                            estimated_scale_factor,
+                            estimated_bias);
 
     //Options
 	ceres::Solver::Options options;
