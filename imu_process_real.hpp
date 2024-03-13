@@ -1,5 +1,4 @@
-#ifndef DEF_IMU_PROCESS_REAL
-#define DEF_IMU_PROCESS_REAL
+#pragma once
 #include <vector>
 #include <thread>
 #include "utils.hpp"
@@ -26,59 +25,71 @@ class imu_process_real{
     void export_results();
 	std::pair<int, int> cutTime(std::vector<double>& time, const double& beginTime, const double& endTime = INFINITY);
 	void keepDataInSameInterval();
+    std::vector<double> get_imutime();
+    std::vector<double> get_dvltime();
+    std::vector<double> get_depth_imutime();
+    std::vector<double> get_phinslat_imutime();
+    std::vector<Eigen::Vector3d> get_orientation_imutime();
+    std::vector<Eigen::Vector3d> get_imuaccel0();
+    std::vector<Eigen::Vector3d> get_dvlspeed();
+    Eigen::Vector3d get_initspeed();
     void remove_bias();
 
 
     template<typename T>
-    Eigen::Vector3<T> process_imu(const Eigen::Vector3<T>& bias,const T scale_factor){
-
+    Eigen::Vector3<T> process_imu(const Eigen::Vector3<T>& bias,const T scale_factor,const std::vector<double>& imutime,const std::vector<double>& dvltime,const std::vector<double>& depth_imutime,
+                                const std::vector<double>& phinslat_imutime, const std::vector<Eigen::Vector3d>&  orientation_imutime, const std::vector<Eigen::Vector3d>& imuaccel0, const std::vector<Eigen::Vector3d>& dvlspeed,
+                                const Eigen::Vector3d& initspeed){
+        int N = imutime.size();
         // remove bias and scale factor
-        std::vector<Eigen::Vector3<T>> imuaccel(m_imuaccel0.size());
-        for (int i=0;i<m_imutime.size();i++){
-            Eigen::Vector3d v = m_dvlspeed_imutime[i];
-            double h = -m_depth_imutime[i]; // - because depth is not altitude !!
-            double Lat = m_phinslat_imutime[i]*EIGEN_PI/180.;
+        std::vector<Eigen::Vector3<T>> imuaccel;
+        for (int i=0;i<N;i++)
+        {
 
-            Eigen::Matrix3<T> orient_mat = utils::get_rotmat(m_orientation_imutime[i]);
-            imuaccel[i]=Eigen::Vector3<T>{scale_factor*m_imuaccel0[i]*50.*1e-7-bias}+ utils::get_g(Lat,h);
+            double h = -depth_imutime[i]; // - because depth is not altitude !!
+            double Lat = phinslat_imutime[i]*EIGEN_PI/180.;
+
+            Eigen::Matrix3d orient_mat = utils::get_rotmat(orientation_imutime[i]);
+            orient_mat.transposeInPlace();
+
+            imuaccel.push_back(Eigen::Vector3<T>{scale_factor*imuaccel0[i]*50.*1e-7-bias} + orient_mat*utils::get_g(Lat,h));
         }
 
-        // orientation
-        // for (int i=0;i<m_imuaccel.size();i++){
+        // // orientation
+        // // for (int i=0;i<m_imuaccel.size();i++){
 
-        //     Eigen::Vector3d v = m_dvlspeed_imutime[i];
-        //     double h = -m_depth_imutime[i]; // - because depth is not altitude !!
-        //     double Lat = m_phinslat_imutime[i]*EIGEN_PI/180.;
+        // //     Eigen::Vector3d v = m_dvlspeed_imutime[i];
+        // //     double h = -m_depth_imutime[i]; // - because depth is not altitude !!
+        // //     double Lat = m_phinslat_imutime[i]*EIGEN_PI/180.;
 
-        //     Eigen::Matrix3<T> orient_mat = utils::get_rotmat(m_orientation_imutime[i]);
-        //     // TO COMPLETE
-        //     if (false){
-        //         Eigen::Vector3d wie = utils::get_wie(Lat,h);
-        //         Eigen::Vector3d wen = utils::get_wen(Lat,v,h);
-        //         imuaccel[i] = orient_mat * (imuaccel[i]*50.*1e-7) + utils::get_local_gravity(Lat,h,wie) - (2*wie+wen).cross(v);  
-        //     }
-        //     else{
-        //         imuaccel[i] =  orient_mat * imuaccel[i]*50.*1e-7 + utils::get_g(Lat,h);
-        //     }
-        // }
+        // //     Eigen::Matrix3<T> orient_mat = utils::get_rotmat(m_orientation_imutime[i]);
+        // //     // TO COMPLETE
+        // //     if (false){
+        // //         Eigen::Vector3d wie = utils::get_wie(Lat,h);
+        // //         Eigen::Vector3d wen = utils::get_wen(Lat,v,h);
+        // //         imuaccel[i] = orient_mat * (imuaccel[i]*50.*1e-7) + utils::get_local_gravity(Lat,h,wie) - (2*wie+wen).cross(v);  
+        // //     }
+        // //     else{
+        // //         imuaccel[i] =  orient_mat * imuaccel[i]*50.*1e-7 + utils::get_g(Lat,h);
+        // //     }
+        // // }
 
         // integration
-        Eigen::Vector3<T> v_0 = Eigen::Vector3<T>{m_initspeed};
+        Eigen::Vector3<T> v_0 = {T{initspeed[0]},T{initspeed[1]},T{initspeed[2]}};
         std::vector<Eigen::Vector3<T>>  imuspeed;
         imuspeed.push_back(v_0);
-        imuspeed.push_back(imuspeed[0] + (m_imutime[1]-m_imutime[0]) * m_imuaccel[1]);
-        for (int i=2;i<m_imuaccel.size();i++){
-            imuspeed.push_back(imuspeed[i-1] + (m_imutime[i]-m_imutime[i-1])*(m_imuaccel[i]+m_imuaccel[i-1])*0.5); 
+        for (int i=1;i<N;i++){
+            imuspeed.push_back(imuspeed[i-1] + (imutime[i]-imutime[i-1])*imuaccel[i]); 
         }
 
-        //rmse
-        std::vector<Eigen::Vector3<T>> imuspeed_dvltime = utils::interpolateVector(imuspeed,m_imutime,m_dvltime);
+        // //rmse
         
-        Eigen::Vector3<T> rmse = {T{0},T{0},T{0}};
-        for (int i=0;i<imuspeed.size();i++){
-            rmse= rmse + (imuspeed[i]-m_dvlspeed[i]).array().square().matrix();
+         Eigen::Vector3<T> rmse = {T{0},T{0},T{0}};
+        for (int i=0;i<N;i++){
+            rmse= rmse + (imuspeed[i]-m_dvlspeed_imutime[i]).array().square().matrix();
         }
-        rmse = rmse / T{imuspeed.size()};
+        double len = 1/N;
+        rmse = rmse / len;
         rmse = rmse.array().sqrt().matrix();
         return rmse;
 
@@ -137,7 +148,7 @@ class imu_process_real{
 
     std::vector<double>  m_dvltime;
     std::vector<double>  m_depthtime;
-    std::vector<double>  m_imutime;
+    std::vector<double>  m_imutime = {0};
     std::vector<double>  m_usbltime;
     std::vector<double>  m_phinstime;
     std::vector<double>  m_ortime;
@@ -146,24 +157,25 @@ class imu_process_real{
 
 };
 
-struct Residual{
-    Residual(imu_process_real& obj){
-        // m_process = obj;
-    }
 
+struct Res_bias_sf{
+    Res_bias_sf(imu_process_real& obj){m_process = &obj;};
     template <typename T>
     bool operator()(const T *const bias, const T *const scale_fact, T *residual) const{
 
 		Eigen::Vector3<T> _bias = Eigen::Vector3<T>(bias);
 		T _scale_fact = scale_fact[0];
 
+        Eigen::Vector3<T> werr;
+        werr = m_process->process_imu(_bias,_scale_fact, m_process->get_imutime(), m_process->get_dvltime(),
+                                     m_process->get_depth_imutime(), m_process->get_phinslat_imutime(), 
+                                     m_process->get_orientation_imutime(), m_process->get_imuaccel0(), 
+                                     m_process->get_dvlspeed(), m_process->get_initspeed());
 
-        residual[0] = m_process->process_imu(_bias,_scale_fact)[0];
-        residual[1] = m_process->process_imu(_bias,_scale_fact)[1];
-        residual[2] = m_process->process_imu(_bias,_scale_fact)[2];
-
-        // residual[0] = T{m_process->dvlimu_rmse()};
-
+        residual[0] = werr[0];
+        residual[1] = werr[1];
+        residual[2] = werr[2];
+        // residual[0] = werr.array().mean();
         return true;
     }
     private:
@@ -172,4 +184,3 @@ struct Residual{
 };
 
 
-#endif

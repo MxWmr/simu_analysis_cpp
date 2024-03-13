@@ -74,9 +74,7 @@ int main(){
         process.get_data();
 
 
-        if (optim_bias){
-            process.remove_bias();
-        }
+
 
         //orient DVL and IMU in navigtation referential
         process.orient_dvl();
@@ -87,7 +85,9 @@ int main(){
         process.integrate_imu1();
         process.integrate_imu2();
 
-
+        if (optim_bias){
+            process.remove_bias();
+        }
         
 
         // export data to CSV files

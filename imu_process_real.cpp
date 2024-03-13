@@ -1,11 +1,4 @@
 #include "imu_process_real.hpp"
-#include <vector>
-#include <thread>
-#include "utils.hpp"
-#include "DataWriter.hpp"
-
-// typedef std::vector<Eigen::Vector3d> Vect3;
-// typedef std::vector<double> Timevect;
 
 
 imu_process_real::imu_process_real(std::string path, std::string simu_name){
@@ -275,21 +268,28 @@ void imu_process_real::export_results(){
 
 }
 
+std::vector<double> imu_process_real::get_imutime(){return m_imutime;}
+std::vector<double> imu_process_real::get_dvltime(){return m_dvltime;}
+std::vector<double> imu_process_real::get_depth_imutime(){return m_depth_imutime;}
+std::vector<double> imu_process_real::get_phinslat_imutime(){return m_phinslat_imutime;}
+std::vector<Eigen::Vector3d> imu_process_real::get_orientation_imutime(){return m_orientation_imutime;};
+std::vector<Eigen::Vector3d> imu_process_real::get_imuaccel0(){return m_imuaccel0;}
+std::vector<Eigen::Vector3d> imu_process_real::get_dvlspeed(){return m_dvlspeed;}
+Eigen::Vector3d imu_process_real::get_initspeed(){return m_initspeed;}
 
 
 void imu_process_real::remove_bias(){
     // Eigen::Vector3d estimated_bias = {0.0, 0.0, 0.0};
     // double estimated_scale_factor = 1;
-    double estimated_bias[3]{0};
-    double estimated_scale_factor[1]{1};
+    std::vector<double> estimated_bias = {0.,0.,0.};
+    double estimated_scale_factor = 1.;
+
     
     ceres::Problem problem;
-    problem.AddParameterBlock(estimated_bias,3);
-    problem.AddParameterBlock(estimated_scale_factor,1);
-    problem.AddResidualBlock(new ceres::AutoDiffCostFunction<Residual, 1, 1, 3>(new Residual(*this) ),
-                            nullptr,
-                            estimated_scale_factor,
-                            estimated_bias);
+    problem.AddParameterBlock(estimated_bias.data(),3);
+    problem.AddParameterBlock(&estimated_scale_factor,1);
+    ceres::CostFunction* f = new ceres::AutoDiffCostFunction<Res_bias_sf, 3, 3, 1>(new Res_bias_sf(*this));
+    problem.AddResidualBlock(f,nullptr,estimated_bias.data(),&estimated_scale_factor);
 
     //Options
 	ceres::Solver::Options options;
@@ -313,3 +313,4 @@ void imu_process_real::remove_bias(){
 
 
 }
+

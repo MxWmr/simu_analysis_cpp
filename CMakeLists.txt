@@ -5,6 +5,7 @@ project (simu_analysis)
 # C++17 required
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_BUILD_TYPE "Debug")
 
 # Required packages
 find_package(Eigen3 CONFIG REQUIRED)
