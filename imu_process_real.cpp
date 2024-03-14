@@ -14,6 +14,11 @@ imu_process_real::imu_process_real(std::string path, std::string simu_name){
 }
 
 void imu_process_real::get_data(){
+    /* 
+    Get all dat from csv file where time is always the first column and is in second
+    
+    All the angles are in deg. The converiso to deg is done in the utils fct
+     */
 
     std::cout << "Loading data ..."<<std::endl;
 
@@ -156,8 +161,8 @@ void imu_process_real::orient_dvl(){
     std::cout << "Orient DVL ..."<<std::endl;
 
     for (int i=0;i<m_dvlspeed.size();i++){
-        Eigen::Matrix3d orient_mat = utils::get_rotmat(m_orientation_dvltime[i]);
-        m_dvlspeed[i] = orient_mat*(m_misalignement * m_dvlspeed[i]);
+        Eigen::Matrix3d R_b2n = utils::get_rotmat(m_orientation_dvltime[i]);
+        m_dvlspeed[i] = R_b2n*(m_misalignement * m_dvlspeed[i]);
     }
 
     std::cout << "Done !" << std::endl;
@@ -171,15 +176,16 @@ void imu_process_real::orient_imu(const bool inert){
         double h = -m_depth_imutime[i]; // - because depth is not altitude !!
         double Lat = m_phinslat_imutime[i]*EIGEN_PI/180.;
 
-        Eigen::Matrix3d orient_mat = utils::get_rotmat(m_orientation_imutime[i]);
+        Eigen::Matrix3d R_b2n = utils::get_rotmat(m_orientation_imutime[i]);
         // TO COMPLETE
         if (inert){
             Eigen::Vector3d wie = utils::get_wie(Lat,h);
             Eigen::Vector3d wen = utils::get_wen(Lat,v,h);
-            m_imuaccel[i] = orient_mat * m_imuaccel[i]*50.*1e-7 + utils::get_local_gravity(Lat,h,wie) - (2*wie+wen).cross(v);  
+            m_imuaccel[i] = R_b2n * m_imuaccel[i]*50.*1e-7 + utils::get_local_gravity(Lat,h,wie) - (2*wie+wen).cross(v);  
         }
         else{
-            m_imuaccel[i] =  orient_mat * m_imuaccel[i]*50.*1e-7 + utils::get_g(Lat,h);
+            m_imuaccel[i] =  R_b2n * m_imuaccel[i]*50.*1e-7 + utils::get_g(Lat,h);
+            std::cout <<  utils::get_g(Lat,h) << std::endl;
         }
 
 
