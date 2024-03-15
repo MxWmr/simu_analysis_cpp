@@ -7,6 +7,11 @@ imu_process_real::imu_process_real(std::string path, std::string simu_name){
 }
 
 void imu_process_real::get_data(){
+    /* 
+    Get all dat from csv file where time is always the first column and is in second
+    
+    All the angles are in deg. The converiso to deg is done in the utils fct
+     */
 
     std::cout << "Loading data ..."<<std::endl;
 
@@ -58,19 +63,24 @@ void imu_process_real::get_data(){
     // m_orientation_imutime = m_orientation;
     m_orientation_dvltime = utils::interpolateAngles3d(m_orientation,10,0);
 
+    // let imu data in orientation time (10Hz)
     // m_imuaccel = utils::interpolateVector(m_imuaccel,m_imutime,m_ortime);
     // m_imutime = m_ortime;
+
+    // let imu data remain in imutime (50Hz)
     m_orientation_imutime = utils::interpolateAngles3d(m_orientation,0.2,0);
     m_ortime = m_imutime;
+
+    // apply coefficients to have acceleration in the good units
+    for (int i(0);i<m_imutime.size();i++){
+        m_imuaccel[i] *= 50.    ;//*1e-7;
+    }
     m_imuaccel0 = m_imuaccel;
 
     m_depth_imutime = utils::interpolate<double>(m_depth,m_depthtime,m_imutime);
 
-    m_phinslat_imutime = m_phinslat;
+    m_phinslat_imutime = utils::interpolateAngles(m_phinslat,0.2,0);
     m_phinspos_dvltime = utils::interpolateVector(m_phinspos,m_phinstime,m_dvltime);
-    m_initspeed = m_dvlspeed[0];
-    m_initpos = m_phinspos[0];  // Warning ! lat long
-
 
     // Parameters
     Eigen::MatrixXd parmat = utils::openData(full_path+"Parameters.csv");
@@ -149,8 +159,8 @@ void imu_process_real::orient_dvl(){
     std::cout << "Orient DVL ..."<<std::endl;
 
     for (int i=0;i<m_dvlspeed.size();i++){
-        Eigen::Matrix3d orient_mat = utils::get_rotmat(m_orientation_dvltime[i]);
-        m_dvlspeed[i] = orient_mat*(m_misalignement * m_dvlspeed[i]);
+        Eigen::Matrix3d R_b2n = utils::get_rotmat(m_orientation_dvltime[i]);
+        m_dvlspeed[i] = R_b2n*(m_misalignement * m_dvlspeed[i]);
     }
 
     std::cout << "Done !" << std::endl;
@@ -164,15 +174,15 @@ void imu_process_real::orient_imu(const bool inert){
         double h = -m_depth_imutime[i]; // - because depth is not altitude !!
         double Lat = m_phinslat_imutime[i]*EIGEN_PI/180.;
 
-        Eigen::Matrix3d orient_mat = utils::get_rotmat(m_orientation_imutime[i]);
+        Eigen::Matrix3d R_b2n = utils::get_rotmat(m_orientation_imutime[i]);
         // TO COMPLETE
         if (inert){
             Eigen::Vector3d wie = utils::get_wie(Lat,h);
             Eigen::Vector3d wen = utils::get_wen(Lat,v,h);
-            m_imuaccel[i] = orient_mat * (m_imuaccel[i]*50.*1e-7) + utils::get_local_gravity(Lat,h,wie) - (2*wie+wen).cross(v);  
+            m_imuaccel[i] = R_b2n * (m_imuaccel[i]) + utils::get_local_gravity(Lat,h,wie) - (2*wie+wen).cross(v);  
         }
         else{
-            m_imuaccel[i] =  orient_mat * m_imuaccel[i]*50.*1e-7 + utils::get_g(Lat,h);
+            m_imuaccel[i] =  R_b2n * m_imuaccel[i] + utils::get_g(Lat,h);
         }
 
 
@@ -190,7 +200,7 @@ void imu_process_real::orient_imu(const bool inert){
 void imu_process_real::integrate_dvl(){
     std::cout << "Integrate DVL ..."<<std::endl;
 
-    Eigen::Vector3d p_0 = m_initpos;
+    Eigen::Vector3d p_0 = m_phinspos[0];
     std::vector<Eigen::Vector3d>  dvlpos;
     dvlpos.push_back(p_0);
 
@@ -206,7 +216,7 @@ void imu_process_real::integrate_dvl(){
 void imu_process_real::integrate_imu1(){
     std::cout << "Integrate IMU ..."<<std::endl;
 
-    Eigen::Vector3d v_0 = m_initspeed;
+    Eigen::Vector3d v_0 = m_dvlspeed[0];
     std::vector<Eigen::Vector3d>  imuspeed;
     imuspeed.push_back(v_0);
     imuspeed.push_back(imuspeed[0] + (m_imutime[1]-m_imutime[0]) * m_imuaccel[1]);
@@ -222,7 +232,7 @@ void imu_process_real::integrate_imu1(){
 void imu_process_real::integrate_imu2(){
     std::cout << "Integrate IMU ..."<<std::endl;
 
-    Eigen::Vector3d p_0 = m_initpos;
+    Eigen::Vector3d p_0 = m_phinspos[0];
     std::vector<Eigen::Vector3d> imupos;
     imupos.push_back(p_0);
 
@@ -281,28 +291,32 @@ Eigen::Vector3d imu_process_real::get_initspeed(){return m_initspeed;}
 void imu_process_real::remove_bias(){
     // Eigen::Vector3d estimated_bias = {0.0, 0.0, 0.0};
     // double estimated_scale_factor = 1;
-    std::vector<double> estimated_bias = {0.,0.,0.};
-    double estimated_scale_factor = 1.;
+    std::vector<double> estimated_bias =  {0.02, 0.001, -0.07};
+    double estimated_scale_factor = 1;
 
     
     ceres::Problem problem;
     problem.AddParameterBlock(estimated_bias.data(),3);
     problem.AddParameterBlock(&estimated_scale_factor,1);
-    ceres::CostFunction* f = new ceres::AutoDiffCostFunction<Res_bias_sf, 3, 3, 1>(new Res_bias_sf(*this));
-    problem.AddResidualBlock(f,nullptr,estimated_bias.data(),&estimated_scale_factor);
+    for (int i(1);i<m_dvltime.size();i++){
+        ceres::CostFunction* f = new ceres::AutoDiffCostFunction<Res_bias_sf, 3, 3, 1>(new Res_bias_sf(*this,i));
+        problem.AddResidualBlock(f,nullptr,estimated_bias.data(),&estimated_scale_factor);
+    }
 
     //Options
 	ceres::Solver::Options options;
 	options.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;   
 	options.trust_region_strategy_type = ceres::LEVENBERG_MARQUARDT;
-
+    options.max_num_spse_iterations = 5;
+    options.spse_tolerance = 0.1;
+    options.min_trust_region_radius = 1e-45;
 
 	const unsigned int processor_count = std::thread::hardware_concurrency();
 	if (processor_count != 0)
 	{
 		options.num_threads = processor_count;
 	}
-	options.max_num_iterations = 10000;
+	options.max_num_iterations = 100;
 
 
     options.minimizer_progress_to_stdout = true;
@@ -311,6 +325,8 @@ void imu_process_real::remove_bias(){
     ceres::Solve(options, &problem, &summary);
     std::cout << summary.FullReport() << std::endl;
 
+    std::cout << "bias: "<< estimated_bias[0]<<"  "<<estimated_bias[1]<<"  "<<estimated_bias[2] << std::endl;
+    std::cout << "scale factor: "<< estimated_scale_factor << std::endl;
 
 }
 

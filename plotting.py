@@ -135,9 +135,9 @@ class plotter:
 
 pl = plotter('SINS_TEST/SIMU_0')
 
-# pl.plotaccel()
-# pl.plotspeed()
-# pl.plotpos()
+pl.plotaccel()
+pl.plotspeed()
+pl.plotpos()
 # pl.plot3d()
 # pl.plot_diff(pl.refspeed_imutime,pl.imuspeed)
 # pl.plot_diff(pl.refpos_imutime,pl.imupos)

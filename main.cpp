@@ -24,7 +24,7 @@ int main(){
 
     if (simu){
         // Parameters of the analysis
-        std::string simu_shape = "HELICOID"; // "LINE" "TEST" "SQUARE" "8TURN" "HELICOIDAL" "TRIANGLE"
+        std::string simu_shape = "TEST"; // "LINE" "TEST" "SQUARE" "8TURN" "HELICOIDAL" "TRIANGLE"
         std::string noise = "0"; // "1" for noise
         simu_name = "SINS_CPP_"+simu_shape+"/"+"SIM_"+noise+"/";
 
@@ -66,7 +66,10 @@ int main(){
     }
 
     else{
-        simu_name = "ESSCORAL19_02/";
+        // simu_name = "ESSCORAL19_02/";
+        std::string simu_shape = "TEST"; // "LINE" "TEST" "SQUARE" "8TURN" "HELICOIDAL" "TRIANGLE"
+        std::string noise = "0"; // "1" for noise
+        simu_name = "SINS_CPP_"+simu_shape+"/"+"SIM_"+noise+"/";
 
         imu_process_real process(path,simu_name);
 
