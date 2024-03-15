@@ -33,38 +33,37 @@ class plotter:
     def plotaccel(self):
         plt.figure(1)
         plt.subplot(311)
-        plt.plot(self.imutime[:100000],self.imuaccel[:100000,0],label='imu')
-        plt.plot(self.dvltime[:2000],self.dvlspeed[:2000,0],label='dvl')
+        plt.plot(self.imutime[:100000],self.imuaccel[:100000,0],label='imu accel (m.s-2)')
+        plt.plot(self.dvltime[:2000],self.dvlspeed[:2000,0],label='dvl speed (m.s-1)')
+
 
         plt.subplot(312)
-        plt.plot(self.imutime[:100000],self.imuaccel[:100000,1],label='imu')
-        plt.plot(self.dvltime[:2000],self.dvlspeed[:2000,1],label='dvl')
+        plt.plot(self.imutime[:100000],self.imuaccel[:100000,1],label='imu accel (m.s-2)')
+        plt.plot(self.dvltime[:2000],self.dvlspeed[:2000,1],label='dvl speed (m.s-1)')
+
 
         plt.subplot(313)
-        plt.plot(self.imutime[:100000],self.imuaccel[:100000,2],label='imu')
-        plt.plot(self.dvltime[:2000],self.dvlspeed[:2000,2],label='dvl')
-
+        plt.plot(self.imutime[:100000],self.imuaccel[:100000,2],label='imu accel (m.s-2)')
+        plt.plot(self.dvltime[:2000],self.dvlspeed[:2000,2],label='dvl speed (m.s-1)')
+        plt.xlabel('time (s)')
         plt.legend()
 
 
     def plotspeed(self):
         plt.figure(2)
         plt.subplot(311)
-        plt.plot(self.dvltime[:2000],self.dvlspeed[:2000,0],label='dvl')
-        plt.plot(self.imutime[:100000],self.imuspeed[:100000,0],label='imu')
-        # plt.plot(self.dvltime,self.refpos_dvltime[:,0],label='phins')
+        plt.plot(self.dvltime[:2000],self.dvlspeed[:2000,0],label='dvl speed (m.s-1)')
+        plt.plot(self.imutime[:100000],self.imuspeed[:100000,0],label='imu speed (m.s-1)')
 
         plt.subplot(312)
-        plt.plot(self.dvltime[:2000],self.dvlspeed[:2000,1],label='dvl')
-        plt.plot(self.imutime[:100000],self.imuspeed[:100000,1],label='imu')
-        # plt.plot(self.dvltime,self.refpos_dvltime[:,1],label='phins')
+        plt.plot(self.dvltime[:2000],self.dvlspeed[:2000,1],label='dvl speed (m.s-1)')
+        plt.plot(self.imutime[:100000],self.imuspeed[:100000,1],label='imu speed (m.s-1)')
 
 
         plt.subplot(313)
-        plt.plot(self.dvltime[:2000],self.dvlspeed[:2000,2],label='dvl')
-        plt.plot(self.imutime[:100000],self.imuspeed[:100000,2],label='imu')
-        # plt.plot(self.dvltime,self.refpos_dvltime[:,2],label='phins')
-
+        plt.plot(self.dvltime[:2000],self.dvlspeed[:2000,2],label='dvl speed (m.s-1)')
+        plt.plot(self.imutime[:100000],self.imuspeed[:100000,2],label='imu speed (m.s-1)')
+        plt.xlabel('time (s)')
 
         plt.legend()
         plt.show()
