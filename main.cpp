@@ -90,6 +90,12 @@ int main(){
 
         if (optim_bias){
             process.remove_bias();
+            Eigen::Vector3d bias = process.get_bias();
+            double scale_factor = process.get_scale_factor();
+
+            process.orient_imu(inert,bias,scale_factor);
+            process.integrate_imu1();
+            process.integrate_imu2();
         }
         
 
