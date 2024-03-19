@@ -66,10 +66,10 @@ int main(){
     }
 
     else{
-        // simu_name = "ESSCORAL19_02/";
-        std::string simu_shape = "TEST"; // "LINE" "TEST" "SQUARE" "8TURN" "HELICOIDAL" "TRIANGLE"
-        std::string noise = "0"; // "1" for noise
-        simu_name = "SINS_CPP_"+simu_shape+"/"+"SIM_"+noise+"/";
+        simu_name = "ESSCORAL19_02/";
+        // std::string simu_shape = "SQUARE"; // "LINE" "TEST" "SQUARE" "8TURN" "HELICOIDAL" "TRIANGLE"
+        // std::string noise = "0"; // "1" for noise
+        // simu_name = "SINS_CPP_"+simu_shape+"/"+"SIM_"+noise+"/";
 
         imu_process_real process(path,simu_name);
 
@@ -89,10 +89,9 @@ int main(){
         process.integrate_imu2();
 
         if (optim_bias){
-            process.remove_bias();
+            process.find_bias();
             Eigen::Vector3d bias = process.get_bias();
             double scale_factor = process.get_scale_factor();
-
             process.orient_imu(inert,bias,scale_factor);
             process.integrate_imu1();
             process.integrate_imu2();

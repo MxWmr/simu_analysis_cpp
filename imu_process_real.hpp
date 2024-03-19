@@ -34,7 +34,7 @@ public:
     Eigen::Vector3d get_initspeed();
     Eigen::Vector3d get_bias();
     double get_scale_factor();
-    void remove_bias();
+    void find_bias();
 
     template <typename T>
     void cutData(std::vector<T> &data, const std::pair<int, int> &interval)

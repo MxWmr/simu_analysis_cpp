@@ -302,7 +302,7 @@ Eigen::Vector3d imu_process_real::get_bias(){return m_bias;}
 double imu_process_real::get_scale_factor(){return m_scale_factor;}
 
 
-void imu_process_real::remove_bias(){
+void imu_process_real::find_bias(){
 
     ceres::Problem problem;
 
@@ -315,7 +315,7 @@ void imu_process_real::remove_bias(){
     
     
     // add residuals
-    for (int i(1);i<m_dvltime.size();i++)
+    for (int i(1);i<1000;i++)
     {
         ceres::CostFunction* f = new ceres::AutoDiffCostFunction<Res_bias_sf, 3, 3, 1>(new Res_bias_sf(*this,i));
         problem.AddResidualBlock(f,nullptr,estimated_bias.data(),&estimated_scale_factor);
@@ -325,7 +325,7 @@ void imu_process_real::remove_bias(){
 	ceres::Solver::Options options;
 	options.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;   
 	options.trust_region_strategy_type = ceres::LEVENBERG_MARQUARDT;
-    options.function_tolerance = 1e-12;
+    options.function_tolerance = 1e-7;
     // options.max_num_spse_iterations = 5;
     // options.spse_tolerance = 0.1;
     // options.min_trust_region_radius = 1e-45;
