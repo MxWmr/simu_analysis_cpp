@@ -6,7 +6,7 @@ imu_process_real::imu_process_real(std::string path, std::string simu_name){
     m_path = path;
 }
 
-void imu_process_real::get_data(){
+void imu_process_real::get_data(const boon simu){
     /* 
     Get all dat from csv file where time is always the first column and is in second
     
@@ -43,6 +43,8 @@ void imu_process_real::get_data(){
     Eigen::MatrixXd depthmat = utils::openData(full_path+"Depth.csv");
     m_depthtime = utils::mat2vec<double>(depthmat(Eigen::all,0));
     m_depth = utils::mat2vec<double>(depthmat(Eigen::all,1));    
+    for (int i(0);i<m_depth.size();i++){m_depth[i]*=-1;}
+
 
     //PHINS
     Eigen::MatrixXd phinsmat = utils::openData(full_path+"PHINS.csv");
@@ -51,10 +53,11 @@ void imu_process_real::get_data(){
     m_phinspos = utils::geo2enu(m_phinspos);  
     m_phinslat =  utils::mat2vec<double>(phinsmat(Eigen::all,1));
 
-
-
-    // Keep only data in same intervall 
-    keepDataInSameInterval();
+    if (!simu)
+    {
+        // Keep only data in same intervall 
+        keepDataInSameInterval();
+    }
 
 
 
@@ -70,9 +73,19 @@ void imu_process_real::get_data(){
     m_ortime = m_imutime;
 
     // apply coefficients to have acceleration in the good units
-    for (int i(0);i<m_imutime.size();i++){
-        m_imuaccel_b[i] *= 50.    ;//*1e-7;
+    if (simu)
+    {
+        for (int i(0);i<m_imutime.size();i++){
+            m_imuaccel_b[i] *= 50.   ;
+        }
     }
+    else
+    {
+        for (int i(0);i<m_imutime.size();i++){
+            m_imuaccel_b[i] *= 50.*1e-7    ;
+        }
+    }
+
 
     m_depth_imutime = utils::interpolate<double>(m_depth,m_depthtime,m_imutime);
 
@@ -83,6 +96,41 @@ void imu_process_real::get_data(){
     Eigen::MatrixXd parmat = utils::openData(full_path+"Parameters.csv");
     Eigen::Vector3d angles = Eigen::Vector3d{parmat(Eigen::all,0)};
     m_misalignement_dvl2b = utils::get_rotmat(angles);
+
+    if (simu)
+    {
+        //Ref
+
+        Eigen::MatrixXd refmat = utils::openData(full_path+"Reference.csv");
+        m_reftime = utils::mat2vec<double>(refmat(Eigen::all,0));
+        m_refspeed_n = utils::mat2vec3d(refmat(Eigen::all,Eigen::seq(7,9)));
+        m_refpos = utils::mat2vec3d(refmat(Eigen::all,Eigen::seq(4,6)));  
+
+        m_refpos_n_dvltime = utils::interpolateVector(m_refpos,m_reftime,m_dvltime);
+        m_refpos_n_imutime = utils::interpolateVector(m_refpos,m_reftime,m_imutime);
+
+        m_refspeed_dvltime = utils::interpolateVector(m_refspeed,m_reftime,m_dvltime);
+        m_refspeed_imutime = utils::interpolateVector(m_refspeed,m_reftime,m_imutime);
+
+        m_reflat =  utils::mat2vec<double>(refmat(Eigen::all,1));
+        m_refdepth = utils::mat2vec<double>(refmat(Eigen::all,3));
+        m_refdepth_imutime = utils::interpolate<double>(m_refdepth,m_reftime,m_imutime);
+        m_reflat_imutime = utils::interpolateAngles(m_reflat,5,0);
+
+        m_initpos = m_refpos[0];
+
+    }
+    else
+    {
+        m_refdepth_imutime = m_depth_imutime;
+        m_reflat_imutime = m_phinslat_imutime;
+        m_initpos = m_phinspos[0];
+
+    }
+
+
+
+
 
 
     std::cout << "Done !"<<std::endl;
@@ -152,7 +200,7 @@ std::pair<int, int> imu_process_real::cutTime(std::vector<double>& time, const d
 
 
 
-void imu_process_real::orient_dvl()
+void imu_process_real::orient_dvl(const bool simu)
 {
     std::cout << "Orient DVL ..."<<std::endl;
     m_dvlspeed_n = m_dvlspeed_b;
@@ -167,6 +215,10 @@ void imu_process_real::orient_dvl()
     // interpolations to imutime
     m_dvlspeed_n_imutime = utils::interpolateVector(m_dvlspeed_n,m_dvltime,m_imutime);
 
+    if (simu){m_initspeed = m_refspeed_n[0];}
+    else{m_initspeed = m_dvlspeed_n[0]}    m_initspeed = m_refspeed[0];
+
+
     std::cout << "Done !" << std::endl;
 }
 
@@ -179,8 +231,8 @@ void imu_process_real::orient_imu(const bool inert,const Eigen::Vector3d& bias, 
     {
 
         Eigen::Vector3d v = m_dvlspeed_n_imutime[i];
-        double h = -m_depth_imutime[i]; // - because depth is not altitude !!
-        double Lat = m_phinslat_imutime[i]*EIGEN_PI/180.;
+        double h = m_ref_depth_imutime[i]; 
+        double Lat = m_reflat_imutime[i]*EIGEN_PI/180.;
         Eigen::Matrix3d R_b2n = utils::get_rotmat(m_orientation_b2n_imutime[i]);
 
         m_imuaccel_n[i] = (m_imuaccel_b[i]-bias)/scale_factor;
@@ -209,7 +261,7 @@ void imu_process_real::integrate_dvl()
 {
     std::cout << "Integrate DVL ..."<<std::endl;
 
-    Eigen::Vector3d p_0 = m_phinspos[0];
+    Eigen::Vector3d p_0 = m_initpos;
     std::vector<Eigen::Vector3d>  dvlpos;
     dvlpos.push_back(p_0);
 
@@ -258,7 +310,7 @@ void imu_process_real::integrate_imu2()
 
 
 
-void imu_process_real::export_results(){
+void imu_process_real::export_results(const bool simu){
 
 	std::cout << "Starting export ... " << std::endl;
 
@@ -270,7 +322,10 @@ void imu_process_real::export_results(){
 	writer.addData(m_imuaccel_n, "acc1", "acc2", "acc3");
     writer.addData(m_imuspeed_n, "speedX", "speedY", "speedZ");
     writer.addData(m_imupos, "posX", "posY", "posZ");
-
+    if (simu){
+    writer.addData(m_refspeed_imutime, "speedX_ref", "speedY_ref", "speedZ_ref");
+    writer.addData(m_refpos_imutime, "posX_ref", "posY_ref", "posZ_ref");
+    }
 	writer.createFile("IMU.csv");
     }
 
@@ -281,7 +336,13 @@ void imu_process_real::export_results(){
 	writer.addData(m_dvltime, "time");
     writer.addData(m_dvlspeed_n, "speedX", "speedY", "speedZ");
     writer.addData(m_dvlpos, "posX", "posY", "posZ");
+    if (simu){
+    writer.addData(m_refspeed_dvltime, "speedX_ref", "speedY_ref", "speedZ_ref");
+    writer.addData(m_refpos_dvltime, "posX_ref", "posY_ref", "posZ_ref");
+    }
+    else{
     writer.addData(m_phinspos_dvltime,"posX_ref", "posY_ref", "posZ_ref");
+    }
 	writer.createFile("DVL.csv");
     }
     
@@ -335,7 +396,7 @@ void imu_process_real::find_bias(){
 	{
 		options.num_threads = processor_count;
 	}
-	options.max_num_iterations = 100;
+	options.max_num_iterations = 50;
 
 
     options.minimizer_progress_to_stdout = true;

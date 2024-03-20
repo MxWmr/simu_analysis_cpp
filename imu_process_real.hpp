@@ -15,13 +15,13 @@ class imu_process_real
 {
 public:
     imu_process_real(std::string path, std::string simu_name);
-    void get_data();
-    void orient_dvl();
+    void get_data(const bool simu);
+    void orient_dvl(const bool simu);
     void orient_imu(const bool inert = false,const Eigen::Vector3d& bias=Eigen::Vector3d::Zero(), const double scale_factor=1);
     void integrate_dvl();
     void integrate_imu1();
     void integrate_imu2();
-    void export_results();
+    void export_results(const bool simu);
     std::pair<int, int> cutTime(std::vector<double> &time, const double &beginTime, const double &endTime = INFINITY);
     void keepDataInSameInterval();
     std::vector<double> get_imutime();

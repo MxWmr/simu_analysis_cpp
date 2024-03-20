@@ -206,9 +206,6 @@ void imu_process::export_results(){
 	writer.addData(m_imutime, "time");
 	writer.addData(m_imuaccel, "acc1", "acc2", "acc3");
     writer.addData(m_imuspeed, "speedX", "speedY", "speedZ");
-    writer.addData(m_refspeed_imutime, "speedX_ref", "speedY_ref", "speedZ_ref");
-    writer.addData(m_imupos, "posX", "posY", "posZ");
-    writer.addData(m_refpos_imutime, "posX_ref", "posY_ref", "posZ_ref");
 
 	writer.createFile("IMU.csv");
     }
