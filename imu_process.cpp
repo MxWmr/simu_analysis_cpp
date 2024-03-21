@@ -230,7 +230,7 @@ void imu_process::orient_dvl(const bool simu)
     std::cout << "Done !" << std::endl;
 }
 
-void imu_process::orient_imu(const bool inert,const Eigen::Vector3d& bias, const double scale_factor)
+void imu_process::orient_imu(const bool inert,const std::vector<Eigen::Vector3d>& bias, const double scale_factor)
 {
     std::cout << "Orient IMU ..."<<std::endl;
     m_imuaccel_n = m_imuaccel_b;
@@ -243,8 +243,10 @@ void imu_process::orient_imu(const bool inert,const Eigen::Vector3d& bias, const
         double Lat = m_reflat_imutime[i]*EIGEN_PI/180.;
         Eigen::Matrix3d R_b2n = utils::get_rotmat(m_orientation_b2n_imutime[i]);
 
-        m_imuaccel_n[i] = (m_imuaccel_b[i]-bias)/scale_factor;
-        m_imuaccel_n[i] =  R_b2n * m_imuaccel_n[i];
+        // Remove bias and scale factor
+        m_imuaccel_b[i] = (m_imuaccel_b[i]-bias[i])/scale_factor;
+        // Orient from body to navigation frame
+        m_imuaccel_n[i] =  R_b2n * m_imuaccel_b[i];
 
         // Remove gravity and inertial acceleration
         if (inert)
@@ -381,7 +383,7 @@ std::vector<Eigen::Vector3d> imu_process::get_orientation_imutime(){return m_ori
 std::vector<Eigen::Vector3d> imu_process::get_imuaccel_b(){return m_imuaccel_b;}
 std::vector<Eigen::Vector3d> imu_process::get_dvlspeed_n(){return m_dvlspeed_n;}
 Eigen::Vector3d imu_process::get_initspeed(){return m_initspeed;}
-Eigen::Vector3d imu_process::get_bias(){return m_bias;}
+std::vector<Eigen::Vector3d>  imu_process::get_bias(){return m_bias;}
 double imu_process::get_scale_factor(){return m_scale_factor;}
 
 
@@ -390,18 +392,30 @@ void imu_process::find_bias(){
     ceres::Problem problem;
 
     // initalize parameters
-    std::vector<double> estimated_bias =  {0.0, 0.00, -0.0};
+    std::vector<Eigen::Vector3d> estimated_bias;
+    for (int i(0);i<m_dvltime.size();i++)
+    {
+        estimated_bias.push_back(Eigen::Vector3d::Zero());
+    }
     double estimated_scale_factor = 1;
-    problem.AddParameterBlock(estimated_bias.data(),3);
-    problem.AddParameterBlock(&estimated_scale_factor,1);
+
+
     
     
     
     // add residuals
-    for (int i(1);i<1000;i++)
+    for (int i(1);i<m_dvltime.size();i++)
     {
-        ceres::CostFunction* f = new ceres::AutoDiffCostFunction<Res_bias_sf, 3, 3, 1>(new Res_bias_sf(*this,i));
-        problem.AddResidualBlock(f,nullptr,estimated_bias.data(),&estimated_scale_factor);
+        problem.AddParameterBlock(estimated_bias[i].data(),3);
+
+        ceres::CostFunction* f = new ceres::AutoDiffCostFunction<Res_bias_sf, 3, 3>(new Res_bias_sf(*this,i));
+        problem.AddResidualBlock(f,nullptr,estimated_bias[i].data()); 
+
+        if (i>0)
+        {
+        ceres::CostFunction* f2 = new ceres::AutoDiffCostFunction<Res_cstbias, 3, 3, 3>(new Res_cstbias(0.001));
+        problem.AddResidualBlock(f2,nullptr,estimated_bias[i].data(),estimated_bias[i-1].data()); 
+        }
     }
 
     //Options
@@ -418,7 +432,7 @@ void imu_process::find_bias(){
 	{
 		options.num_threads = processor_count;
 	}
-	options.max_num_iterations = 50;
+	options.max_num_iterations = 300;
 
 
     options.minimizer_progress_to_stdout = true;
@@ -430,7 +444,7 @@ void imu_process::find_bias(){
     std::cout << "bias: "<< estimated_bias[0]<<"  "<<estimated_bias[1]<<"  "<<estimated_bias[2] << std::endl;
     std::cout << "scale factor: "<< estimated_scale_factor << std::endl;
     m_scale_factor = estimated_scale_factor;
-    m_bias = Eigen::Vector3d(estimated_bias.data());
+    m_bias = estimated_bias;
 
 
 

@@ -17,7 +17,7 @@ public:
     imu_process(std::string path, std::string simu_name);
     void get_data(const bool simu);
     void orient_dvl(const bool simu);
-    void orient_imu(const bool inert = false,const Eigen::Vector3d& bias=Eigen::Vector3d::Zero(), const double scale_factor=1);
+    void orient_imu(const bool inert, const std::vector<Eigen::Vector3d>& bias, const double scale_factor=1);
     void integrate_dvl();
     void integrate_imu1();
     void integrate_imu2();
@@ -33,7 +33,7 @@ public:
     std::vector<Eigen::Vector3d> get_imuaccel_b();
     std::vector<Eigen::Vector3d> get_dvlspeed_n();
     Eigen::Vector3d get_initspeed();
-    Eigen::Vector3d get_bias();
+    std::vector<Eigen::Vector3d>  get_bias();
     double get_scale_factor();
     void find_bias();
 
@@ -60,7 +60,7 @@ protected:
     Eigen::Vector3d m_initspeed;
     Eigen::Matrix<double, 3, 3> m_misalignement_dvl2b;
     double m_scale_factor;
-    Eigen::Vector3d m_bias;
+    std::vector<Eigen::Vector3d> m_bias;
 
     std::vector<double> m_depth;
     std::vector<double> m_depth_imutime;
@@ -117,11 +117,9 @@ struct Res_bias_sf
         m_i = i;
     };
     template <typename T>
-    bool operator()(const T *const bias, const T *const scale_fact, T *residual) const
+    bool operator()(const T *const bias, T *residual) const
     {
-
         Eigen::Vector3<T> _bias = Eigen::Vector3<T>(bias);
-        T _scale_fact = scale_fact[0];
 
         std::vector<Eigen::Vector3d> dvlspeed_n = m_process->get_dvlspeed_n();
         std::vector<Eigen::Vector3d> imuaccel_b = m_process->get_imuaccel_b();
@@ -131,7 +129,6 @@ struct Res_bias_sf
         std::vector<double> depth_imutime = m_process->get_depth_imutime();
         std::vector<double> phinslat_imutime = m_process->get_phinslat_imutime();
 
-        // Eigen::Vector3<T> werr;
         Eigen::Vector3<T> werr = {T{0},T{0},T{0}};
 
         int j(0);
@@ -146,24 +143,50 @@ struct Res_bias_sf
 
             Eigen::Matrix3d R_b2n = utils::get_rotmat(orientation_b2n_imutime[j]);
 
-            speedincr = 0.02 * (Eigen::Vector3<T>{R_b2n * ((imuaccel_b[j]  - _bias) / _scale_fact)} + utils::get_g(Lat, h));
+            speedincr = 0.02 * (Eigen::Vector3<T>{R_b2n * ((imuaccel_b[j]  - _bias) )} + utils::get_g(Lat, h));
             werr -= speedincr;
 
             j++;
         }
         werr += dvlspeed_n[m_i] - dvlspeed_n[m_i - 1];
 
-        if (m_i % 100 == 0)
-        {
-            // std::cout << werr << std::endl;
-        }
         residual[0] = werr[0];
         residual[1] = werr[1];
         residual[2] = werr[2];
+
         return true;
     }
 
 private:
     imu_process *m_process;
     int m_i;
+};
+
+
+
+
+struct Res_cstbias
+{
+
+    Res_cstbias(const double std):m_std(std){}
+
+    template <typename T>
+    bool operator()(const T *const biasi, const T *const biasi_1, T *residual) const
+    {
+        Eigen::Vector3<T> _biasi = Eigen::Vector3<T>(biasi);
+        Eigen::Vector3<T> _biasi_1 = Eigen::Vector3<T>(biasi_1);
+
+        Eigen::Vector3<T> werr = {T{0},T{0},T{0}};
+
+        werr += 1./m_std*(_biasi-_biasi_1);
+
+        residual[0] = werr[0];
+        residual[1] = werr[1];
+        residual[2] = werr[2];
+
+        return true;
+    }
+
+private:
+    double m_std;
 };
