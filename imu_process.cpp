@@ -398,7 +398,7 @@ void imu_process::find_bias(){
     
     
     // add residuals
-    for (int i(1);i<1000;i++)
+    for (int i(1);i<m_dvltime.size();i++)
     {
         ceres::CostFunction* f = new ceres::AutoDiffCostFunction<Res_bias_sf, 3, 3, 1>(new Res_bias_sf(*this,i));
         problem.AddResidualBlock(f,nullptr,estimated_bias.data(),&estimated_scale_factor);
