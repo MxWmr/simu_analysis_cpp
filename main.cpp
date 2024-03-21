@@ -45,12 +45,7 @@ int main(){
 
     //orient DVL and IMU in navigtation referential
     process.orient_dvl(simu);
-    std::vector<Eigen::Vector3d> bias;
-    for (int i(0);i<process.get_dvltime().size();i++)
-    {
-        bias.push_back(Eigen::Vector3d::Zero());
-    }
-    process.orient_imu(inert,bias);
+    process.orient_imu(inert);
 
     //integrate DVL and IMU to get speed and position
     process.integrate_dvl();
@@ -59,7 +54,7 @@ int main(){
 
     if (optim_bias){
         process.find_bias();
-        std::vector<Eigen::Vector3d> bias = process.get_bias();
+        Eigen::Vector3d bias = process.get_bias();
         double scale_factor = process.get_scale_factor();
         process.orient_imu(inert,bias,scale_factor);
         process.integrate_imu1();
