@@ -168,17 +168,17 @@ private:
 struct Res_cstbias
 {
 
-    Res_cstbias(const double std):m_std(std){}
+    Res_cstbias(const double std,const Eigen::Vector3d& biasi_1):m_std(std),m_biasi_1(biasi_1){}
 
     template <typename T>
-    bool operator()(const T *const biasi, const T *const biasi_1, T *residual) const
+    bool operator()(const T *const biasi, T *residual) const
     {
         Eigen::Vector3<T> _biasi = Eigen::Vector3<T>(biasi);
-        Eigen::Vector3<T> _biasi_1 = Eigen::Vector3<T>(biasi_1);
+        // Eigen::Vector3<T> _biasi_1 = Eigen::Vector3<T>(m_biasi_1);
 
         Eigen::Vector3<T> werr = {T{0},T{0},T{0}};
 
-        werr += 1./m_std*(_biasi-_biasi_1);
+        werr += 1./m_std*(_biasi-m_biasi_1);
 
         residual[0] = werr[0];
         residual[1] = werr[1];
@@ -189,4 +189,5 @@ struct Res_cstbias
 
 private:
     double m_std;
+    Eigen::Vector3d m_biasi_1;
 };

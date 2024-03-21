@@ -389,7 +389,6 @@ double imu_process::get_scale_factor(){return m_scale_factor;}
 
 void imu_process::find_bias(){
 
-    ceres::Problem problem;
 
     // initalize parameters
     std::vector<Eigen::Vector3d> estimated_bias;
@@ -406,43 +405,53 @@ void imu_process::find_bias(){
     // add residuals
     for (int i(1);i<m_dvltime.size();i++)
     {
-        problem.AddParameterBlock(estimated_bias[i].data(),3);
+        if (i>0){estimated_bias[i]=estimated_bias[i-1];}
 
+        ceres::Problem problem;
+        problem.AddParameterBlock(estimated_bias[i].data(),3);
         ceres::CostFunction* f = new ceres::AutoDiffCostFunction<Res_bias_sf, 3, 3>(new Res_bias_sf(*this,i));
         problem.AddResidualBlock(f,nullptr,estimated_bias[i].data()); 
-
         if (i>0)
         {
-        ceres::CostFunction* f2 = new ceres::AutoDiffCostFunction<Res_cstbias, 3, 3, 3>(new Res_cstbias(0.001));
-        problem.AddResidualBlock(f2,nullptr,estimated_bias[i].data(),estimated_bias[i-1].data()); 
+        ceres::CostFunction* f2 = new ceres::AutoDiffCostFunction<Res_cstbias, 3, 3>(new Res_cstbias(0.001,estimated_bias[i-1]));
+        problem.AddResidualBlock(f2,nullptr,estimated_bias[i].data()); 
         }
+
+
+
+        ceres::Solver::Options options;
+        options.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;   
+        options.trust_region_strategy_type = ceres::LEVENBERG_MARQUARDT;
+        options.function_tolerance = 1e-7;
+        const unsigned int processor_count = std::thread::hardware_concurrency();
+        if (processor_count != 0)
+        {
+            options.num_threads = processor_count;
+        }
+        options.max_num_iterations = 15;
+
+
+        options.minimizer_progress_to_stdout = false;
+
+        ceres::Solver::Summary summary;
+        ceres::Solve(options, &problem, &summary);
+        
+
     }
 
     //Options
-	ceres::Solver::Options options;
-	options.linear_solver_type = ceres::SPARSE_NORMAL_CHOLESKY;   
-	options.trust_region_strategy_type = ceres::LEVENBERG_MARQUARDT;
-    options.function_tolerance = 1e-7;
+
     // options.max_num_spse_iterations = 5;
     // options.spse_tolerance = 0.1;
     // options.min_trust_region_radius = 1e-45;
 
-	const unsigned int processor_count = std::thread::hardware_concurrency();
-	if (processor_count != 0)
-	{
-		options.num_threads = processor_count;
-	}
-	options.max_num_iterations = 300;
 
 
-    options.minimizer_progress_to_stdout = true;
+    std::cout << "first bias: "<< estimated_bias[0]<< std::endl;
+    std::cout << "bias in the middle: "<< estimated_bias[estimated_bias.size()/2]<< std::endl;
+    std::cout << "last bias: "<< estimated_bias[estimated_bias.size()-1]<< std::endl;
 
-    ceres::Solver::Summary summary;
-    ceres::Solve(options, &problem, &summary);
-    std::cout << summary.FullReport() << std::endl;
 
-    std::cout << "bias: "<< estimated_bias[0]<<"  "<<estimated_bias[1]<<"  "<<estimated_bias[2] << std::endl;
-    std::cout << "scale factor: "<< estimated_scale_factor << std::endl;
     m_scale_factor = estimated_scale_factor;
     m_bias = estimated_bias;
 
