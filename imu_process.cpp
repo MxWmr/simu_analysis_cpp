@@ -332,6 +332,7 @@ void imu_process::export_results(const bool simu){
 	writer.addData(m_imuaccel_n, "acc1", "acc2", "acc3");
     writer.addData(m_imuspeed_n, "speedX", "speedY", "speedZ");
     writer.addData(m_imupos, "posX", "posY", "posZ");
+    writer.addData(m_bias, "biasx", "biasy", "biasz");
     if (simu){
     writer.addData(m_refspeed_n_imutime, "speedX_ref", "speedY_ref", "speedZ_ref");
     writer.addData(m_refpos_imutime, "posX_ref", "posY_ref", "posZ_ref");
@@ -402,7 +403,7 @@ void imu_process::find_bias(){
     
     
     // add residuals
-    for (int i(1);i<m_dvltime.size();i++)
+    for (int i(0);i<m_dvltime.size();i++)
     {
 
         problem.AddParameterBlock(estimated_bias[i].data(),3);
@@ -410,11 +411,11 @@ void imu_process::find_bias(){
         ceres::CostFunction* f = new ceres::AutoDiffCostFunction<Res_bias_sf, 3, 3>(new Res_bias_sf(*this,i));
         problem.AddResidualBlock(f,nullptr,estimated_bias[i].data());
 
-        if (i>0)
-        {
-        ceres::CostFunction* f2 = new ceres::AutoDiffCostFunction<Res_cstbias, 3, 3, 3>(new Res_cstbias(0.01));
-        problem.AddResidualBlock(f2,nullptr,estimated_bias[i].data(),estimated_bias[i-1].data()); 
-        }
+        // if (i>0)
+        // {
+        // ceres::CostFunction* f2 = new ceres::AutoDiffCostFunction<Res_cstbias, 3, 3, 3>(new Res_cstbias(1));
+        // problem.AddResidualBlock(f2,nullptr,estimated_bias[i].data(),estimated_bias[i-1].data()); 
+        // }
     }
 
     //Options
@@ -440,12 +441,12 @@ void imu_process::find_bias(){
     ceres::Solve(options, &problem, &summary);
     std::cout << summary.FullReport() << std::endl;
 
-    std::cout << "bias: "<< estimated_bias[0]<<"  "<<estimated_bias[1]<<"  "<<estimated_bias[2] << std::endl;
+    std::cout << "first bias: "<< estimated_bias[0]<< std::endl;
+    std::cout << "bias in the middle: "<< estimated_bias[estimated_bias.size()/2]<< std::endl;
+    std::cout << "last bias: "<< estimated_bias[estimated_bias.size()-1]<< std::endl;
 
     // Put estimated bias into IMU time
     std::vector<Eigen::Vector3d> estimated_bias2 = utils::interpolateVector(estimated_bias,m_dvltime,m_imutime);
     m_bias = estimated_bias2;
-
-
 
 }

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 
 class plotter:
-    def __init__(self,simu=False):
+    def __init__(self,simu=False,bias_stdy=False,path=""):
 
         self.simu = simu
         print("loading results ...")
@@ -27,6 +27,13 @@ class plotter:
 
         self.dvltime = df_dvl['time'].to_numpy()
         self.imutime = df_imu['time'].to_numpy()
+
+        if bias_stdy:
+            self.estimated_bias = np.stack([df_imu['biasx'].to_numpy(),df_imu['biasy'].to_numpy(),df_imu['biasz'].to_numpy()]).T
+            df_imu2 = pd.read_csv("/home/maxwmr/Documents/work/data2/"+path+"/IMU.csv",sep=',') 
+            self.true_bias = np.stack([df_imu2['biasx'].to_numpy(),df_imu2['biasy'].to_numpy(),df_imu2['biasz'].to_numpy()]).T
+            self.biastime = df_imu2['time'].to_numpy()
+
 
 
         if simu:
@@ -149,11 +156,36 @@ class plotter:
         
 
 
-pl = plotter(simu=False)
+    def plot_bias(self):
+        plt.figure(1)
+        plt.subplot(311)
+        plt.plot(self.biastime,self.true_bias[:,0],label='true')
+        plt.plot(self.imutime,self.estimated_bias[:,0],label='estimated')
+        plt.xlabel('t (s)')            
+        plt.ylabel('biais x (m/s-2)')
 
-pl.plotaccel()
-pl.plotspeed()
-pl.plotpos()
+        plt.subplot(312)
+        plt.plot(self.biastime,self.true_bias[:,1],label='true')
+        plt.plot(self.imutime,self.estimated_bias[:,1],label='estimated')
+        plt.xlabel('t (s)')
+        plt.ylabel('biais y (m/s-2)')
+
+        plt.subplot(313)
+        plt.plot(self.biastime,self.true_bias[:,2],label='true')
+        plt.plot(self.imutime,self.estimated_bias[:,2],label='estimated')
+        plt.xlabel('t (s)')        
+        plt.ylabel('biais z (m/s-2)')
+
+
+        plt.legend()
+        plt.show()
+        plt.close()        
+
+pl = plotter(simu=False,bias_stdy=True,path="SINS_CPP_TEST/SIM_0")
+pl.plot_bias()
+# pl.plotaccel()
+# pl.plotspeed()
+# pl.plotpos()
 # pl.plot3d()
 # pl.plot_diff(pl.refspeed_imutime,pl.imuspeed)
 # pl.plot_diff(pl.refpos_imutime,pl.imupos)
