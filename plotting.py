@@ -88,19 +88,19 @@ class plotter:
         plt.subplot(311)
         plt.plot(self.dvltime,self.dvlpos[:,0],label='dvl')
         plt.plot(self.imutime,self.imupos[:,0],label='imu')
-        plt.plot(self.imutime,self.refpos_imutime[:,0],label=self.reflab)
+        plt.plot(self.dvltime,self.refpos_dvltime[:,0],label=self.reflab)
 
             
 
         plt.subplot(312)
         plt.plot(self.dvltime,self.dvlpos[:,1],label='dvl')
         plt.plot(self.imutime,self.imupos[:,1],label='imu')
-        plt.plot(self.imutime,self.refpos_imutime[:,1],label=self.reflab)
+        plt.plot(self.dvltime,self.refpos_dvltime[:,1],label=self.reflab)
 
         plt.subplot(313)
         plt.plot(self.dvltime,self.dvlpos[:,2],label='dvl')
         plt.plot(self.imutime,self.imupos[:,2],label='imu')
-        plt.plot(self.imutime,self.refpos_imutime[:,2],label=self.reflab)
+        plt.plot(self.dvltime,self.refpos_dvltime[:,2],label=self.reflab)
 
 
         plt.legend()
@@ -149,7 +149,7 @@ class plotter:
         
 
 
-pl = plotter('SINS_TEST/SIMU_0',sim=False)
+pl = plotter(simu=False)
 
 pl.plotaccel()
 pl.plotspeed()
