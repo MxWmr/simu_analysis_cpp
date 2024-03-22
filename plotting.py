@@ -183,8 +183,8 @@ class plotter:
 
 pl = plotter(simu=False,bias_stdy=True,path="SINS_CPP_TEST/SIM_0")
 pl.plot_bias()
-# pl.plotaccel()
-# pl.plotspeed()
+pl.plotaccel()
+pl.plotspeed()
 # pl.plotpos()
 # pl.plot3d()
 # pl.plot_diff(pl.refspeed_imutime,pl.imuspeed)

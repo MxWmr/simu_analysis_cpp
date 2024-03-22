@@ -35,7 +35,7 @@ public:
     Eigen::Vector3d get_initspeed();
     std::vector<Eigen::Vector3d>  get_bias();
     double get_scale_factor();
-    void find_bias();
+    void find_bias(const bool inert=false);
 
     template <typename T>
     void cutData(std::vector<T> &data, const std::pair<int, int> &interval)
@@ -111,10 +111,11 @@ protected:
 
 struct Res_bias_sf
 {
-    Res_bias_sf(imu_process &obj, int i)
+    Res_bias_sf(imu_process &obj,const int i,const bool inert)
     {
         m_process = &obj;
         m_i = i;
+        m_inert = inert;
     };
     template <typename T>
     bool operator()(const T *const bias, T *residual) const
@@ -143,22 +144,31 @@ struct Res_bias_sf
 
             double h = depth_imutime[j]; // - because depth is not altitude !!
             double Lat = phinslat_imutime[j] * PI / 180.;
+            Eigen::Vector3d v = dvlspeed_n[m_i-1];
+            Eigen::Vector3d wie = utils::get_wie(Lat,h);
+            Eigen::Vector3d wen = utils::get_wen(Lat,v,h);
 
             Eigen::Matrix3d R_b2n = utils::get_rotmat(orientation_b2n_imutime[j]);
             R_b2n_tot += R_b2n;
 
-            speedincr += 0.02 * (R_b2n * (imuaccel_b[j]) + utils::get_g(Lat, h));
+            speedincr +=  R_b2n * imuaccel_b[j];
+
+            if (m_inert)
+            {
+                speedincr += utils::get_local_gravity(Lat,h,wie) - (2*wie+wen).cross(v);
+            }
+            else
+            {
+                speedincr += utils::get_g(Lat, h);
+            }
             j++;
         }
 
-        werr -= speedincr;
+        werr -= 0.02 * speedincr;
         werr +=  0.02 * Eigen::Vector3<T>{R_b2n_tot *  _bias };
         werr += dvlspeed_n[m_i] - dvlspeed_n[m_i - 1];
 
-        if (m_i % 100 == 0)
-        {
-            // std::cout << werr << std::endl;
-        }
+
         residual[0] = werr[0];
         residual[1] = werr[1];
         residual[2] = werr[2];
@@ -168,6 +178,7 @@ struct Res_bias_sf
 private:
     imu_process *m_process;
     int m_i;
+    bool m_inert;
 };
 
 

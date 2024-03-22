@@ -14,7 +14,7 @@ int main(){
     bool simu =true;
 
     bool optim_bias = true;
-    bool inert = false;
+    bool inert = true;
     bool export_tofile = true;
     bool res_rmse = false;  // not already finished
     std::string path = "/home/maxwmr/Documents/work/data2/";
@@ -59,7 +59,7 @@ int main(){
     process.integrate_imu2();
 
     if (optim_bias){
-        process.find_bias();
+        process.find_bias(inert);
         std::vector<Eigen::Vector3d> estimated_bias = process.get_bias();
         process.orient_imu(inert,estimated_bias,1.);
         process.integrate_imu1();
