@@ -1,4 +1,5 @@
 #pragma once
+#include <Eigen/Dense>
 #include <vector>
 #include <thread>
 #include "utils.hpp"
@@ -135,21 +136,27 @@ struct Res_bias_sf
         while (imutime[j] <= dvltime[m_i - 1]){j++;}
 
         Eigen::Vector3<T> speedincr;
+        Eigen::Matrix3d R_b2n_tot;
         while (imutime[j] < dvltime[m_i] && j < imutime.size())
         {
 
-            double h = -depth_imutime[j]; // - because depth is not altitude !!
+            double h = depth_imutime[j]; 
             double Lat = phinslat_imutime[j] * PI / 180.;
 
             Eigen::Matrix3d R_b2n = utils::get_rotmat(orientation_b2n_imutime[j]);
+            R_b2n_tot += R_b2n;
 
-            speedincr = 0.02 * (Eigen::Vector3<T>{R_b2n * ((imuaccel_b[j]  - _bias) )} + utils::get_g(Lat, h));
-            werr -= speedincr;
+            speedincr += 0.02 * (R_b2n * imuaccel_b[j] + utils::get_g(Lat, h));
 
+            // speedincr = 0.02 * (Eigen::Vector3<T>{R_b2n * ((imuaccel_b[j]  - _bias))} + utils::get_g(Lat, h));
+            // werr -= speedincr;
             j++;
         }
-        werr += dvlspeed_n[m_i] - dvlspeed_n[m_i - 1];
 
+        werr += 0.02 * Eigen::Vector3<T>{R_b2n_tot * _bias};
+        werr -=speedincr;
+        werr += dvlspeed_n[m_i] - dvlspeed_n[m_i - 1];
+        // std::cout << "werr: "<<werr<<std::endl;
         residual[0] = werr[0];
         residual[1] = werr[1];
         residual[2] = werr[2];

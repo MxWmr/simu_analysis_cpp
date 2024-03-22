@@ -392,30 +392,29 @@ void imu_process::find_bias(){
     ceres::Problem problem;
 
     // initalize parameters
-    std::vector<Eigen::Vector3d> estimated_bias;
+    std::vector<Eigen::Vector3d> estimated_bias2;
     for (int i(0);i<m_dvltime.size();i++)
     {
-        estimated_bias.push_back(Eigen::Vector3d::Zero());
+        estimated_bias2.push_back(Eigen::Vector3d::Zero());
     }
-    double estimated_scale_factor = 1;
-
+    std::vector<double> estimated_bias =  {0.0, 0.00, -0.0};
 
     
-    
+    problem.AddParameterBlock(estimated_bias.data(),3);
     
     // add residuals
     for (int i(1);i<m_dvltime.size();i++)
     {
-        problem.AddParameterBlock(estimated_bias[i].data(),3);
+        
 
         ceres::CostFunction* f = new ceres::AutoDiffCostFunction<Res_bias_sf, 3, 3>(new Res_bias_sf(*this,i));
-        problem.AddResidualBlock(f,nullptr,estimated_bias[i].data()); 
+        problem.AddResidualBlock(f,nullptr,estimated_bias.data()); 
 
-        if (i>0)
-        {
-        ceres::CostFunction* f2 = new ceres::AutoDiffCostFunction<Res_cstbias, 3, 3, 3>(new Res_cstbias(0.001));
-        problem.AddResidualBlock(f2,nullptr,estimated_bias[i].data(),estimated_bias[i-1].data()); 
-        }
+        // if (i>0)
+        // {
+        // ceres::CostFunction* f2 = new ceres::AutoDiffCostFunction<Res_cstbias, 3, 3, 3>(new Res_cstbias(0.01));
+        // problem.AddResidualBlock(f2,nullptr,estimated_bias[i].data(),estimated_bias[i-1].data()); 
+        // }
     }
 
     //Options
@@ -432,7 +431,7 @@ void imu_process::find_bias(){
 	{
 		options.num_threads = processor_count;
 	}
-	options.max_num_iterations = 300;
+	options.max_num_iterations = 50;
 
 
     options.minimizer_progress_to_stdout = true;
@@ -441,10 +440,11 @@ void imu_process::find_bias(){
     ceres::Solve(options, &problem, &summary);
     std::cout << summary.FullReport() << std::endl;
 
-    std::cout << "bias: "<< estimated_bias[0]<<"  "<<estimated_bias[1]<<"  "<<estimated_bias[2] << std::endl;
-    std::cout << "scale factor: "<< estimated_scale_factor << std::endl;
-    m_scale_factor = estimated_scale_factor;
-    m_bias = estimated_bias;
+    std::cout << "first bias: "<< estimated_bias[0]<< std::endl;
+    std::cout << "bias in the middle: "<< estimated_bias[estimated_bias.size()/2]<< std::endl;
+    std::cout << "last bias: "<< estimated_bias[estimated_bias.size()-1]<< std::endl;
+
+    m_bias = estimated_bias2;
 
 
 
