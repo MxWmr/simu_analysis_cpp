@@ -6,12 +6,15 @@ imu_process::imu_process(std::string path, std::string simu_name){
     m_path = path;
 }
 
-void imu_process::get_data(const bool simu){
+void imu_process::get_data(const bool simu,const int len){
     /* 
     Get all dat from csv file where time is always the first column and is in second
     
     All the angles are in deg. The converiso to deg is done in the utils fct
      */
+
+
+
 
     std::cout << "Loading data ..."<<std::endl;
 
@@ -35,7 +38,12 @@ void imu_process::get_data(const bool simu){
     m_imuaccel_b = utils::mat2vec3d(imumat(Eigen::all,Eigen::seq(4,6)));    
 
     // DVL
-    Eigen::MatrixXd dvlmat = utils::openData(full_path+"DVL.csv");
+    Eigen::MatrixXd dvlmat0 = utils::openData(full_path+"DVL.csv");
+    Eigen::MatrixXd dvlmat;
+    if (!simu){
+        dvlmat = dvlmat0(Eigen::seq(0,len),Eigen::all);
+    }
+    else{dvlmat = dvlmat0;}
     m_dvltime = utils::mat2vec<double>(dvlmat(Eigen::all,0));
     m_dvlspeed_b = utils::mat2vec3d(dvlmat(Eigen::all,Eigen::seq(1,3)));
 
@@ -62,14 +70,23 @@ void imu_process::get_data(const bool simu){
 
 
     // m_orientation_b2n_imutime = m_orientation_b2n;
-    m_orientation_b2n_dvltime = utils::interpolateAngles3d(m_orientation_b2n,10,0);
+    m_orientation_b2n_dvltime = utils::interpolateAngles3d(m_orientation_b2n,m_ortime,m_dvltime);
+    // m_orientation_b2n_dvltime = utils::interpolateAngles3d2(m_orientation_b2n,10,0);
 
     // let imu data in orientation time (10Hz)
     // m_imuaccel = utils::interpolateVector(m_imuaccel,m_imutime,m_ortime);
     // m_imutime = m_ortime;
 
     // let imu data remain in imutime (50Hz)
-    m_orientation_b2n_imutime = utils::interpolateAngles3d(m_orientation_b2n,0.2,0);
+
+    // std::vector<Eigen::Vector3d> orientation_b2n_imutime2 = utils::interpolateAngles3d(m_orientation_b2n,m_ortime,m_imutime);
+    m_orientation_b2n_imutime = utils::interpolateAngles3d2(m_orientation_b2n,0.2,0);
+
+    // for (int i(0);i<m_imutime.size();i++)
+    // {
+    //     std::cout << orientation_b2n_imutime2[i]-m_orientation_b2n_imutime[i]<<std::endl;
+    // }
+
     m_ortime = m_imutime;
 
     // apply coefficients to have acceleration in the good units
@@ -448,17 +465,24 @@ void imu_process::find_bias(const bool inert){
     // Put estimated bias into IMU time
     // std::vector<Eigen::Vector3d> estimated_bias2 = utils::interpolateVector(estimated_bias,m_dvltime,m_imutime);
     std::vector<Eigen::Vector3d> estimated_bias2;
+    int j(0);
+    // while (m_imutime[j] < m_dvltime[0]){j++;}
+
     for (int i(0);i<m_dvltime.size()-1;i++)
     {
-        for (int j(0);j<50;j++)
+    
+        while (m_imutime[j] < m_dvltime[i+1])
         {
             estimated_bias2.push_back(estimated_bias[i+1]);
+            j++;
         }
     }
 
-    for (int j(0);j<50;j++)
+
+    while (m_imutime[j] < m_dvltime[m_dvltime.size()-1] && j < m_imutime.size())
     {
         estimated_bias2.push_back(estimated_bias[m_dvltime.size()-1]);
+        j++;
     }
     m_bias = estimated_bias2;
 

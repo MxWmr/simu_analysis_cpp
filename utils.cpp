@@ -165,7 +165,10 @@ void utils::process_orientation(std::vector<Eigen::Vector3d>& orientation){
 }
 
 
- std::vector<Eigen::Vector3d> utils::interpolateAngles3d(const std::vector<Eigen::Vector3d>& input, const double& rate, const double& indexOffset, const bool& radiant)
+
+
+
+ std::vector<Eigen::Vector3d> utils::interpolateAngles3d2(const std::vector<Eigen::Vector3d>& input, const double& rate, const double& indexOffset, const bool& radiant)
 {
     if (rate == 1.) return std::vector<Eigen::Vector3d>(input); // If rate = 1, there is no interpolation
 
@@ -203,6 +206,55 @@ void utils::process_orientation(std::vector<Eigen::Vector3d>& orientation){
     return output;
 };
 
+    std::vector<Eigen::Vector3d> utils::interpolateAngles3d(const std::vector<Eigen::Vector3d>& input, const std::vector<double>& inputTime, const std::vector<double>& refTime, const bool& radiant) 
+{
+    std::vector<Eigen::Vector3d> output;
+    
+    double period;
+    if (radiant) period = 2 * PI;
+    else period = 360;
+
+    int inputIndex(0);
+
+    for (int refIndex(0); refIndex < refTime.size(); refIndex++)
+    {
+        std::time_t currentTime = refTime[refIndex];
+
+        while (inputIndex < inputTime.size() && inputTime[inputIndex] < currentTime)
+        {
+            inputIndex++;
+        }
+
+        if (inputIndex == inputTime.size())
+        {
+            break;
+        }
+        else if (inputTime[inputIndex] == currentTime)
+        {
+            output.push_back(input[inputIndex]);
+        }
+        else
+        {
+            std::time_t previousTime = inputTime[inputIndex - 1];
+            std::time_t nextTime = inputTime[inputIndex];
+            double alpha = (currentTime - previousTime) / double(nextTime - previousTime);
+
+            //Angle Process for interpolation
+            Eigen::Vector3d deltaAngle = fmodVector(input[inputIndex] - input[inputIndex - 1], period);
+            Eigen::Vector3d shortestDistance = fmodVector(2 * deltaAngle, period) - deltaAngle;
+            output.push_back(fmodVector(input[inputIndex - 1] + alpha * shortestDistance, period));
+        }
+    }
+
+    //If interpolation didn't update the last elements
+    while (output.size() < refTime.size())
+    {
+        output.push_back(output.back());
+    }
+
+    return output;
+}
+
  std::vector<double> utils::interpolateAngles(const std::vector<double>& input, const double& rate, const double& indexOffset, const bool& radiant)
 {
     if (rate == 1.) return std::vector<double>(input); // If rate = 1, there is no interpolation
@@ -234,10 +286,7 @@ void utils::process_orientation(std::vector<Eigen::Vector3d>& orientation){
         // Increment
         inputIndex += rate;
         outputIndex++;
-        
     }
-
-
     return output;
 };
 
@@ -249,6 +298,7 @@ Eigen::Vector3d utils::fmodVector(const Eigen::Vector3d& input,const double num)
     }
     return output;
 };
+
 
 std::vector<Eigen::Vector3d> utils::geo2enu(const std::vector<Eigen::Vector3d>& geoPositions)
 {

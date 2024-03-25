@@ -15,7 +15,7 @@ class imu_process
 {
 public:
     imu_process(std::string path, std::string simu_name);
-    void get_data(const bool simu);
+    void get_data(const bool simu,const int len=1);
     void orient_dvl(const bool simu);
     void orient_imu(const bool inert, const std::vector<Eigen::Vector3d>& bias, const double scale_factor=1);
     void integrate_dvl();

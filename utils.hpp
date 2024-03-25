@@ -27,7 +27,8 @@ struct utils
     static Eigen::MatrixXd openData(std::string fileToOpen);
 	static std::vector<Eigen::Vector3d> mat2vec3d(Eigen::MatrixXd mat);
 	static void process_orientation(std::vector<Eigen::Vector3d>& orientation);
-	static std::vector<Eigen::Vector3d> interpolateAngles3d(const std::vector<Eigen::Vector3d>& input, const double& rate, const double& indexOffset, const bool& radiant = false);
+	static std::vector<Eigen::Vector3d> interpolateAngles3d2(const std::vector<Eigen::Vector3d>& input, const double& rate, const double& indexOffset, const bool& radiant = false);
+	static std::vector<Eigen::Vector3d> interpolateAngles3d(const std::vector<Eigen::Vector3d>& input, const std::vector<double>& inputTime, const std::vector<double>& refTime, const bool& radiant=false); 
 	static std::vector<double> interpolateAngles(const std::vector<double>& input, const double& rate, const double& indexOffset, const bool& radiant = false);
 	static Eigen::Vector3d fmodVector(const Eigen::Vector3d& input,const double num);
 	static std::vector<Eigen::Vector3d> geo2enu(const std::vector<Eigen::Vector3d>& geoPositions);
@@ -62,7 +63,6 @@ struct utils
 
 
 
-
 	template<typename T>
 	static std::vector<T> mat2vec(const Eigen::MatrixXd& mat){
 		std::vector<T> out;
@@ -79,9 +79,9 @@ struct utils
 	{
 		std::vector<T> output;
 
-		std::size_t inputIndex(0);
+		int inputIndex(0);
 
-		for (std::size_t refIndex(0); refIndex < refTime.size(); refIndex++)
+		for (int refIndex(0); refIndex < refTime.size(); refIndex++)
 		{
 			double currentTime = refTime[refIndex];
 
@@ -123,9 +123,10 @@ struct utils
 	{
 		std::vector<Eigen::Vector3<T>> output;
 
-		std::size_t inputIndex(0);
+		int inputIndex(0);
 
-		for (std::size_t refIndex(0); refIndex < refTime.size(); refIndex++)
+
+		for (int refIndex(0); refIndex < refTime.size(); refIndex++)
 		{
 			double currentTime = refTime[refIndex];
 
@@ -165,12 +166,9 @@ struct utils
 
 
 
-	// template<typename T>
-	// static std::vector<Eigen::Vector3<T>> interpolateAnglesVectors(const std::vector<Eigen::Vector3<T>>  input, const double& rate, const double& indexOffset, const bool& radiant = false)
-	// {
-	// 	std::vector<T> roll = (,rate,indexOffset,radiant)
-	// 	return output;
-	// }
+
+
+
 
 
 

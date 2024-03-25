@@ -181,7 +181,7 @@ class plotter:
         plt.show()
         plt.close()        
 
-pl = plotter(simu=False,bias_stdy=True,path="SINS_CPP_TEST/SIM_0")
+pl = plotter(simu=True,bias_stdy=True,path="SINS_CPP_TEST/SIM_0")
 pl.plot_bias()
 pl.plotaccel()
 pl.plotspeed()

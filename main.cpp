@@ -38,7 +38,7 @@ int main(){
     imu_process process(path,simu_name);
 
     // get data from files
-    process.get_data(simu);
+    process.get_data(simu,2000);
 
 
 
