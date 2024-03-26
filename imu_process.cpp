@@ -70,8 +70,8 @@ void imu_process::get_data(const bool simu,const int len){
 
 
     // m_orientation_b2n_imutime = m_orientation_b2n;
-    m_orientation_b2n_dvltime = utils::interpolateAngles3d(m_orientation_b2n,m_ortime,m_dvltime);
-    // m_orientation_b2n_dvltime = utils::interpolateAngles3d2(m_orientation_b2n,10,0);
+    m_orientation_b2n_dvltime = utils::interpolateAngles3d_withRef(m_orientation_b2n,m_ortime,m_dvltime);
+    // m_orientation_b2n_dvltime = utils::interpolateAngles3d_withRate(m_orientation_b2n,10,0);
 
     // let imu data in orientation time (10Hz)
     // m_imuaccel = utils::interpolateVector(m_imuaccel,m_imutime,m_ortime);
@@ -79,13 +79,9 @@ void imu_process::get_data(const bool simu,const int len){
 
     // let imu data remain in imutime (50Hz)
 
-    // std::vector<Eigen::Vector3d> orientation_b2n_imutime2 = utils::interpolateAngles3d(m_orientation_b2n,m_ortime,m_imutime);
-    m_orientation_b2n_imutime = utils::interpolateAngles3d2(m_orientation_b2n,0.2,0);
+    // std::vector<Eigen::Vector3d> orientation_b2n_imutime2 = utils::interpolateAngles3d_withRef(m_orientation_b2n,m_ortime,m_imutime);
+    m_orientation_b2n_imutime = utils::interpolateAngles3d_withRate(m_orientation_b2n,0.2,0);
 
-    // for (int i(0);i<m_imutime.size();i++)
-    // {
-    //     std::cout << orientation_b2n_imutime2[i]-m_orientation_b2n_imutime[i]<<std::endl;
-    // }
 
     m_ortime = m_imutime;
 

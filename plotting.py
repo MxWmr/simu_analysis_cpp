@@ -95,19 +95,19 @@ class plotter:
         plt.subplot(311)
         plt.plot(self.dvltime,self.dvlpos[:,0],label='dvl')
         plt.plot(self.imutime,self.imupos[:,0],label='imu')
-        plt.plot(self.dvltime,self.refpos_dvltime[:,0],label=self.reflab)
+        # plt.plot(self.dvltime,self.refpos_dvltime[:,0],label=self.reflab)
 
             
 
         plt.subplot(312)
         plt.plot(self.dvltime,self.dvlpos[:,1],label='dvl')
         plt.plot(self.imutime,self.imupos[:,1],label='imu')
-        plt.plot(self.dvltime,self.refpos_dvltime[:,1],label=self.reflab)
+        # plt.plot(self.dvltime,self.refpos_dvltime[:,1],label=self.reflab)
 
         plt.subplot(313)
         plt.plot(self.dvltime,self.dvlpos[:,2],label='dvl')
         plt.plot(self.imutime,self.imupos[:,2],label='imu')
-        plt.plot(self.dvltime,self.refpos_dvltime[:,2],label=self.reflab)
+        # plt.plot(self.dvltime,self.refpos_dvltime[:,2],label=self.reflab)
 
 
         plt.legend()
@@ -181,11 +181,11 @@ class plotter:
         plt.show()
         plt.close()        
 
-pl = plotter(simu=True,bias_stdy=True,path="SINS_CPP_TEST/SIM_0")
-pl.plot_bias()
-pl.plotaccel()
+pl = plotter(simu=False,bias_stdy=False,path="SINS_CPP_TEST/SIM_0")
+# pl.plot_bias()
+# pl.plotaccel()
 pl.plotspeed()
-# pl.plotpos()
+pl.plotpos()
 # pl.plot3d()
 # pl.plot_diff(pl.refspeed_imutime,pl.imuspeed)
 # pl.plot_diff(pl.refpos_imutime,pl.imupos)

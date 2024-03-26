@@ -168,7 +168,7 @@ void utils::process_orientation(std::vector<Eigen::Vector3d>& orientation){
 
 
 
- std::vector<Eigen::Vector3d> utils::interpolateAngles3d2(const std::vector<Eigen::Vector3d>& input, const double& rate, const double& indexOffset, const bool& radiant)
+ std::vector<Eigen::Vector3d> utils::interpolateAngles3d_withRate(const std::vector<Eigen::Vector3d>& input, const double& rate, const double& indexOffset, const bool& radiant)
 {
     if (rate == 1.) return std::vector<Eigen::Vector3d>(input); // If rate = 1, there is no interpolation
 
@@ -206,7 +206,7 @@ void utils::process_orientation(std::vector<Eigen::Vector3d>& orientation){
     return output;
 };
 
-    std::vector<Eigen::Vector3d> utils::interpolateAngles3d(const std::vector<Eigen::Vector3d>& input, const std::vector<double>& inputTime, const std::vector<double>& refTime, const bool& radiant) 
+    std::vector<Eigen::Vector3d> utils::interpolateAngles3d_withRef(const std::vector<Eigen::Vector3d>& input, const std::vector<double>& inputTime, const std::vector<double>& refTime, const bool& radiant) 
 {
     std::vector<Eigen::Vector3d> output;
     
