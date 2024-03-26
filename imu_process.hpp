@@ -195,7 +195,7 @@ struct Res_cstbias
 
         Eigen::Vector3<T> werr = {T{0},T{0},T{0}};
 
-        werr += 1./m_std*(_biasi-_biasi_1);
+        werr += (_biasi-_biasi_1)/m_std;
 
         residual[0] = werr[0];
         residual[1] = werr[1];

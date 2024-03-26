@@ -426,8 +426,8 @@ void imu_process::find_bias(const bool inert){
 
         // if (i>0)
         // {
-        // ceres::CostFunction* f2 = new ceres::AutoDiffCostFunction<Res_cstbias, 3, 3, 3>(new Res_cstbias(1));
-        // problem.AddResidualBlock(f2,nullptr,estimated_bias[i].data(),estimated_bias[i-1].data()); 
+        // ceres::CostFunction* f2 = new ceres::AutoDiffCostFunction<Res_cstbias, 3, 3, 3>(new Res_cstbias(50));
+        // problem.AddResidualBlock(f2,nullptr,estimated_bias[i].data(),estimated_bias[i-1].data());  
         // }
     }
 
@@ -467,7 +467,7 @@ void imu_process::find_bias(const bool inert){
     for (int i(0);i<m_dvltime.size()-1;i++)
     {
     
-        while (m_imutime[j] < m_dvltime[i+1])
+        while (m_imutime[j] <= m_dvltime[i+1])
         {
             estimated_bias2.push_back(estimated_bias[i+1]);
             j++;
@@ -475,7 +475,7 @@ void imu_process::find_bias(const bool inert){
     }
 
 
-    while (m_imutime[j] < m_dvltime[m_dvltime.size()-1] && j < m_imutime.size())
+    while (j < m_imutime.size())
     {
         estimated_bias2.push_back(estimated_bias[m_dvltime.size()-1]);
         j++;
